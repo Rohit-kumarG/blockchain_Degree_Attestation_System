@@ -1,7 +1,8 @@
-import { FilePlus2, GraduationCap } from "lucide-react";
+import { FilePlus2, GraduationCap, Link2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatusMessage } from "../components/StatusMessage.jsx";
 import { apiRequest } from "../services/api.js";
+import { issueDegreeOnChain } from "../services/web3.js";
 
 const emptyForm = {
   studentName: "",
@@ -46,6 +47,34 @@ export function DegreesPage({ token }) {
       });
       setForm(emptyForm);
       setSuccess("Degree issued off-chain with hash and QR code.");
+      await loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleIssueOnChain(degree) {
+    setError("");
+    setSuccess("");
+
+    try {
+      const receipt = await issueDegreeOnChain({
+        degreeHash: degree.degreeHash,
+        studentWallet: degree.studentWallet,
+        ipfsCID: degree.ipfsCID,
+      });
+
+      await apiRequest(`/degrees/${degree._id}/blockchain-confirmation`, {
+        method: "PATCH",
+        token,
+        body: {
+          blockchainTxHash: receipt.txHash,
+          contractAddress: receipt.contractAddress,
+          chainId: receipt.chainId,
+        },
+      });
+
+      setSuccess(`Degree issued on-chain. Tx: ${receipt.txHash}`);
       await loadData();
     } catch (err) {
       setError(err.message);
@@ -122,6 +151,20 @@ export function DegreesPage({ token }) {
                 <p className="text-sm text-stone-500">{degree.degreeTitle} · {degree.department}</p>
                 <p className="mt-2 break-all text-xs text-stone-600">{degree.degreeHash}</p>
                 <p className="mt-1 text-sm text-stone-500">ID: {degree._id}</p>
+                {degree.blockchainTxHash ? (
+                  <p className="mt-2 break-all text-xs font-medium text-emerald-800">
+                    On-chain tx: {degree.blockchainTxHash}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleIssueOnChain(degree)}
+                    className="focus-ring mt-3 inline-flex h-9 items-center gap-2 border border-stone-300 bg-white px-3 text-sm font-medium hover:bg-stone-100"
+                  >
+                    <Link2 size={16} />
+                    Issue on-chain
+                  </button>
+                )}
               </div>
               {degree.qrCodeDataUrl ? (
                 <img className="h-28 w-28 border border-stone-200" src={degree.qrCodeDataUrl} alt="Degree verification QR code" />
@@ -133,4 +176,3 @@ export function DegreesPage({ token }) {
     </div>
   );
 }
-

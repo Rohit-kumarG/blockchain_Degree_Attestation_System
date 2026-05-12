@@ -29,3 +29,13 @@ export const revokeDegreeSchema = z.object({
   }),
 });
 
+export const blockchainConfirmationSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
+    blockchainTxHash: z.string().min(10),
+    contractAddress: z.string().min(10),
+    chainId: z.number().int().positive(),
+  }),
+});

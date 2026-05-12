@@ -1,7 +1,8 @@
-import { Building2, Plus } from "lucide-react";
+import { Building2, Link2, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatusMessage } from "../components/StatusMessage.jsx";
 import { apiRequest } from "../services/api.js";
+import { approveUniversityOnChain } from "../services/web3.js";
 
 const emptyForm = { name: "", code: "", walletAddress: "" };
 
@@ -30,6 +31,21 @@ export function UniversitiesPage({ token }) {
       setForm(emptyForm);
       setSuccess("University created.");
       await loadUniversities();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleApproveOnChain(university) {
+    setError("");
+    setSuccess("");
+
+    try {
+      const receipt = await approveUniversityOnChain({
+        universityWallet: university.walletAddress,
+        name: university.name,
+      });
+      setSuccess(`University approved on-chain. Tx: ${receipt.txHash}`);
     } catch (err) {
       setError(err.message);
     }
@@ -82,9 +98,19 @@ export function UniversitiesPage({ token }) {
                 <p className="text-sm text-stone-500">{university.code}</p>
                 <p className="mt-1 break-all text-sm text-stone-600">{university.walletAddress}</p>
               </div>
-              <span className={`h-fit px-3 py-1 text-sm font-medium ${university.active ? "bg-emerald-100 text-emerald-900" : "bg-stone-100 text-stone-700"}`}>
-                {university.active ? "Active" : "Inactive"}
-              </span>
+              <div className="flex items-start gap-2">
+                <span className={`h-fit px-3 py-1 text-sm font-medium ${university.active ? "bg-emerald-100 text-emerald-900" : "bg-stone-100 text-stone-700"}`}>
+                  {university.active ? "Active" : "Inactive"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleApproveOnChain(university)}
+                  className="focus-ring inline-flex h-9 items-center gap-2 border border-stone-300 bg-white px-3 text-sm font-medium hover:bg-stone-100"
+                >
+                  <Link2 size={16} />
+                  On-chain
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -92,4 +118,3 @@ export function UniversitiesPage({ token }) {
     </div>
   );
 }
-

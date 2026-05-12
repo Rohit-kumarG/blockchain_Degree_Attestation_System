@@ -10,6 +10,13 @@
     "preview": "vite preview",
     "test": "echo \"Client tests will be added later.\""
   },
+  "dependencies": {
+    "ethers": "^6.16.0",
+    "lucide-react": "^0.561.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-router-dom": "^7.10.1"
+  },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",

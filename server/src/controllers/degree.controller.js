@@ -115,3 +115,36 @@ export const revokeDegree = asyncHandler(async (req, res) => {
   res.json({ degree });
 });
 
+export const confirmDegreeOnChain = asyncHandler(async (req, res) => {
+  const degree = await Degree.findById(req.validated.params.id).populate("university");
+
+  if (!degree) {
+    throw new ApiError(404, "Degree not found");
+  }
+
+  if (
+    req.user.role !== roles.SUPER_ADMIN &&
+    req.user.university?.toString() !== degree.university._id.toString()
+  ) {
+    throw new ApiError(403, "You can only confirm degrees for your own university");
+  }
+
+  degree.blockchainTxHash = req.validated.body.blockchainTxHash;
+  degree.contractAddress = req.validated.body.contractAddress.toLowerCase();
+  degree.chainId = req.validated.body.chainId;
+  await degree.save();
+
+  await writeAuditLog({
+    req,
+    action: "DEGREE_CONFIRMED_ON_CHAIN",
+    targetType: "Degree",
+    targetId: degree._id.toString(),
+    metadata: {
+      blockchainTxHash: degree.blockchainTxHash,
+      contractAddress: degree.contractAddress,
+      chainId: degree.chainId,
+    },
+  });
+
+  res.json({ degree });
+});
