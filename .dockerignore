@@ -1,0 +1,9 @@
+node_modules
+client/dist
+contracts/artifacts
+contracts/cache
+.env
+server/.env
+client/.env
+npm-debug.log
+

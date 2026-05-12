@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   activateUniversity,
+  confirmUniversityOnChain,
   createUniversity,
   deactivateUniversity,
   listUniversities,
@@ -9,7 +10,11 @@ import { authenticate } from "../middleware/auth.js";
 import { authorize } from "../middleware/authorize.js";
 import { validate } from "../middleware/validate.js";
 import { roles } from "../utils/roles.js";
-import { createUniversitySchema, universityIdSchema } from "../validators/university.validators.js";
+import {
+  createUniversitySchema,
+  universityBlockchainConfirmationSchema,
+  universityIdSchema,
+} from "../validators/university.validators.js";
 
 export const universityRouter = Router();
 
@@ -29,4 +34,10 @@ universityRouter.patch(
   validate(universityIdSchema),
   deactivateUniversity
 );
-
+universityRouter.patch(
+  "/:id/blockchain-confirmation",
+  authenticate,
+  authorize(roles.SUPER_ADMIN),
+  validate(universityBlockchainConfirmationSchema),
+  confirmUniversityOnChain
+);

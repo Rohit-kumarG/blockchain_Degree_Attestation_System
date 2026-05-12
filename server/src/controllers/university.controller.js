@@ -68,3 +68,24 @@ export const deactivateUniversity = asyncHandler(async (req, res) => {
   res.json({ university });
 });
 
+export const confirmUniversityOnChain = asyncHandler(async (req, res) => {
+  const university = await University.findById(req.validated.params.id);
+
+  if (!university) {
+    throw new ApiError(404, "University not found");
+  }
+
+  university.blockchainApproved = true;
+  university.approvedTxHash = req.validated.body.approvedTxHash;
+  await university.save();
+
+  await writeAuditLog({
+    req,
+    action: "UNIVERSITY_CONFIRMED_ON_CHAIN",
+    targetType: "University",
+    targetId: university._id.toString(),
+    metadata: { approvedTxHash: university.approvedTxHash },
+  });
+
+  res.json({ university });
+});

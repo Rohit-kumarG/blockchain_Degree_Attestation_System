@@ -4,8 +4,13 @@
   "private": true,
   "description": "Learning-first advanced blockchain based degree attestation system.",
   "scripts": {
-    "build": "echo \"Build scripts will be added after client, server, and contracts are initialized.\"",
-    "test": "echo \"Tests will be added phase by phase.\""
+    "build": "npm run build --workspace client",
+    "test": "npm run test --workspace contracts",
+    "server": "npm run start --workspace server",
+    "client": "npm run dev --workspace client",
+    "contracts:node": "npm run node --workspace contracts",
+    "contracts:deploy": "npm run deploy:local --workspace contracts",
+    "seed:admin": "npm run seed:admin --workspace server"
   },
   "workspaces": [
     "client",

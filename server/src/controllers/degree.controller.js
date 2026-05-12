@@ -5,7 +5,7 @@ import { roles } from "../utils/roles.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { createDegreeHash } from "../utils/hashDegree.js";
 import { writeAuditLog } from "../services/audit.service.js";
-import { createMockIpfsCID } from "../services/ipfs.service.js";
+import { createDegreeMetadataCID } from "../services/ipfs.service.js";
 import { createDegreeQrCode } from "../services/qr.service.js";
 
 export const issueDegree = asyncHandler(async (req, res) => {
@@ -24,7 +24,7 @@ export const issueDegree = asyncHandler(async (req, res) => {
   }
 
   const issueDate = data.issueDate ? new Date(data.issueDate) : new Date();
-  const ipfsCID = data.ipfsCID || (await createMockIpfsCID({ ...data, issueDate }));
+  const ipfsCID = data.ipfsCID || (await createDegreeMetadataCID({ ...data, issueDate }));
   const degreeHash = createDegreeHash({
     ...data,
     universityId: university._id,

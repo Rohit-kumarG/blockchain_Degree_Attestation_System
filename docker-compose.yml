@@ -1,0 +1,72 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: degree-attestation-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  ipfs:
+    image: ipfs/kubo:v0.30.0
+    container_name: degree-attestation-ipfs
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+      - "5001:5001"
+      - "8080:8080"
+    volumes:
+      - ipfs_data:/data/ipfs
+
+  hardhat:
+    image: node:22-alpine
+    container_name: degree-attestation-hardhat
+    working_dir: /app
+    command: sh -c "npm install && npm run node --workspace contracts"
+    ports:
+      - "8545:8545"
+    volumes:
+      - .:/app
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: degree-attestation-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      MONGODB_URI: mongodb://mongo:27017/degree_attestation
+      IPFS_API_URL: http://ipfs:5001
+      CHAIN_RPC_URL: http://hardhat:8545
+      CHAIN_ID: 31337
+      JWT_SECRET: change_this_for_real_deployments
+      JWT_EXPIRES_IN: 1d
+      API_BASE_URL: http://localhost:5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongo
+      - ipfs
+      - hardhat
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: degree-attestation-client
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: http://localhost:5000/api
+      VITE_CHAIN_ID: 31337
+      VITE_CHAIN_RPC_URL: http://127.0.0.1:8545
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
+
+volumes:
+  mongo_data:
+  ipfs_data:

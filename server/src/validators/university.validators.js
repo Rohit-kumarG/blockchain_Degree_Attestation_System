@@ -14,3 +14,11 @@ export const universityIdSchema = z.object({
   }),
 });
 
+export const universityBlockchainConfirmationSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
+    approvedTxHash: z.string().min(10),
+  }),
+});

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { AppShell } from "./components/AppShell.jsx";
 import { DashboardPage } from "./pages/DashboardPage.jsx";
+import { AuditLogsPage } from "./pages/AuditLogsPage.jsx";
 import { DegreesPage } from "./pages/DegreesPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { UniversitiesPage } from "./pages/UniversitiesPage.jsx";
@@ -40,9 +41,9 @@ export function App() {
         <Route path="/universities" element={<UniversitiesPage token={session.token} />} />
         <Route path="/degrees" element={<DegreesPage token={session.token} />} />
         <Route path="/verify" element={<VerificationPage />} />
+        <Route path="/audit" element={<AuditLogsPage token={session.token} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>
   );
 }
-
