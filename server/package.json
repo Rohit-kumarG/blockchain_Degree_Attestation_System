@@ -1,0 +1,13 @@
+{
+  "name": "@degree-attestation/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Express API for the degree attestation system.",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "test": "echo \"Server tests will be added later.\""
+  }
+}
+
