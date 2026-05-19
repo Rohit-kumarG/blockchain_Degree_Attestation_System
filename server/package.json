@@ -8,6 +8,7 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "seed:admin": "node src/scripts/seedSuperAdmin.js",
+    "seed:demo": "node src/scripts/seedDemoData.js",
     "test": "echo \"Server tests will be added later.\""
   },
   "dependencies": {

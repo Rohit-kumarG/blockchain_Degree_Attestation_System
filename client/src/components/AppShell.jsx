@@ -12,13 +12,19 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { roles } from "../utils/roleAccess.js";
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: BarChart3 },
-  { to: "/universities", label: "Universities", icon: Building2 },
-  { to: "/degrees", label: "Degrees", icon: GraduationCap },
-  { to: "/verify", label: "Verify", icon: QrCode },
-  { to: "/audit", label: "Audit Logs", icon: History },
+  { to: "/", label: "Dashboard", icon: BarChart3, roles: [roles.SUPER_ADMIN, roles.UNIVERSITY_ADMIN, roles.AUDITOR] },
+  { to: "/universities", label: "Universities", icon: Building2, roles: [roles.SUPER_ADMIN] },
+  {
+    to: "/degrees",
+    label: "Degrees",
+    icon: GraduationCap,
+    roles: [roles.SUPER_ADMIN, roles.UNIVERSITY_ADMIN, roles.UNIVERSITY_STAFF, roles.STUDENT],
+  },
+  { to: "/verify", label: "Verify", icon: QrCode, roles: Object.values(roles) },
+  { to: "/audit", label: "Audit Logs", icon: History, roles: [roles.SUPER_ADMIN, roles.AUDITOR] },
 ];
 
 export function AppShell({ user, onLogout, children }) {
@@ -27,7 +33,7 @@ export function AppShell({ user, onLogout, children }) {
   return (
     <div className="min-h-screen bg-[#eef2ef] text-stone-950">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-stone-200 bg-[#fbfcfa] shadow-sm lg:block">
-        <SidebarContent onNavigate={() => setMenuOpen(false)} />
+        <SidebarContent user={user} onNavigate={() => setMenuOpen(false)} />
       </aside>
 
       {menuOpen ? (
@@ -39,7 +45,7 @@ export function AppShell({ user, onLogout, children }) {
             onClick={() => setMenuOpen(false)}
           />
           <aside className="relative h-full w-[min(88vw,320px)] bg-[#fbfcfa] shadow-xl">
-            <SidebarContent onNavigate={() => setMenuOpen(false)} />
+            <SidebarContent user={user} onNavigate={() => setMenuOpen(false)} />
           </aside>
         </div>
       ) : null}
@@ -83,7 +89,9 @@ export function AppShell({ user, onLogout, children }) {
   );
 }
 
-function SidebarContent({ onNavigate }) {
+function SidebarContent({ user, onNavigate }) {
+  const visibleItems = navItems.filter((item) => item.roles.includes(user?.role));
+
   return (
     <>
       <div className="flex h-24 items-center gap-3 border-b border-stone-200 px-6">
@@ -97,7 +105,7 @@ function SidebarContent({ onNavigate }) {
       </div>
 
       <nav className="space-y-1 px-4 py-6">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

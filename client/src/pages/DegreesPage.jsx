@@ -4,6 +4,7 @@ import { PageHeader } from "../components/PageHeader.jsx";
 import { StatusMessage } from "../components/StatusMessage.jsx";
 import { apiRequest } from "../services/api.js";
 import { issueDegreeOnChain } from "../services/web3.js";
+import { roles } from "../utils/roleAccess.js";
 
 const emptyForm = {
   studentName: "",
@@ -15,7 +16,7 @@ const emptyForm = {
   universityId: "",
 };
 
-export function DegreesPage({ token }) {
+export function DegreesPage({ token, user }) {
   const [degrees, setDegrees] = useState([]);
   const [universities, setUniversities] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -58,6 +59,13 @@ export function DegreesPage({ token }) {
     }
   }
 
+  const canIssueDegree = [roles.SUPER_ADMIN, roles.UNIVERSITY_ADMIN, roles.UNIVERSITY_STAFF].includes(user?.role);
+  const pageTitle = user?.role === roles.STUDENT ? "My Degrees" : "Degrees";
+  const pageDescription =
+    user?.role === roles.STUDENT
+      ? "These are the degrees issued to your student account. Share the degree ID or QR with an employer for verification."
+      : "Create degree metadata, generate a deterministic hash, produce QR verification data, and optionally write proof to the smart contract.";
+
   async function handleIssueOnChain(degree) {
     setError("");
     setSuccess("");
@@ -93,11 +101,12 @@ export function DegreesPage({ token }) {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Credential Issuance"
-        title="Degrees"
-        description="Create degree metadata, generate a deterministic hash, produce QR verification data, and optionally write proof to the smart contract."
+        title={pageTitle}
+        description={pageDescription}
       />
 
       <div className="grid gap-6 xl:grid-cols-[460px_1fr]">
+      {canIssueDegree ? (
       <section className="border border-stone-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center bg-emerald-700 text-white">
@@ -155,8 +164,9 @@ export function DegreesPage({ token }) {
           </button>
         </form>
       </section>
+      ) : null}
 
-      <section className="border border-stone-200 bg-white shadow-sm">
+      <section className={`border border-stone-200 bg-white shadow-sm ${canIssueDegree ? "" : "xl:col-span-2"}`}>
         <div className="border-b border-stone-200 p-5">
           <h2 className="text-xl font-semibold">Issued Degrees</h2>
         </div>
@@ -172,7 +182,7 @@ export function DegreesPage({ token }) {
                   <p className="mt-2 break-all text-xs font-medium text-emerald-800">
                     On-chain tx: {degree.blockchainTxHash}
                   </p>
-                ) : (
+                ) : canIssueDegree ? (
                   <button
                     type="button"
                     disabled={busy}
@@ -182,7 +192,7 @@ export function DegreesPage({ token }) {
                     <Link2 size={16} />
                     Issue on-chain
                   </button>
-                )}
+                ) : null}
               </div>
               {degree.qrCodeDataUrl ? (
                 <img className="h-28 w-28 border border-stone-200" src={degree.qrCodeDataUrl} alt="Degree verification QR code" />

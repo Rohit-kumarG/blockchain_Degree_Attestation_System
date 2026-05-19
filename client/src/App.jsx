@@ -8,6 +8,7 @@ import { UniversitiesPage } from "./pages/UniversitiesPage.jsx";
 import { VerificationPage } from "./pages/VerificationPage.jsx";
 import { clearSession, loadSession, saveSession } from "./utils/auth.js";
 import { useState } from "react";
+import { canAccess, defaultRouteForRole, roles } from "./utils/roleAccess.js";
 
 export function App() {
   const navigate = useNavigate();
@@ -37,11 +38,52 @@ export function App() {
   return (
     <AppShell user={session.user} onLogout={handleLogout}>
       <Routes>
-        <Route path="/" element={<DashboardPage token={session.token} />} />
-        <Route path="/universities" element={<UniversitiesPage token={session.token} />} />
-        <Route path="/degrees" element={<DegreesPage token={session.token} />} />
+        <Route
+          path="/"
+          element={
+            canAccess(session.user.role, [roles.SUPER_ADMIN, roles.UNIVERSITY_ADMIN, roles.AUDITOR]) ? (
+              <DashboardPage token={session.token} />
+            ) : (
+              <Navigate to={defaultRouteForRole(session.user.role)} replace />
+            )
+          }
+        />
+        <Route
+          path="/universities"
+          element={
+            canAccess(session.user.role, [roles.SUPER_ADMIN]) ? (
+              <UniversitiesPage token={session.token} />
+            ) : (
+              <Navigate to={defaultRouteForRole(session.user.role)} replace />
+            )
+          }
+        />
+        <Route
+          path="/degrees"
+          element={
+            canAccess(session.user.role, [
+              roles.SUPER_ADMIN,
+              roles.UNIVERSITY_ADMIN,
+              roles.UNIVERSITY_STAFF,
+              roles.STUDENT,
+            ]) ? (
+              <DegreesPage token={session.token} user={session.user} />
+            ) : (
+              <Navigate to={defaultRouteForRole(session.user.role)} replace />
+            )
+          }
+        />
         <Route path="/verify" element={<VerificationPage />} />
-        <Route path="/audit" element={<AuditLogsPage token={session.token} />} />
+        <Route
+          path="/audit"
+          element={
+            canAccess(session.user.role, [roles.SUPER_ADMIN, roles.AUDITOR]) ? (
+              <AuditLogsPage token={session.token} />
+            ) : (
+              <Navigate to={defaultRouteForRole(session.user.role)} replace />
+            )
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>
