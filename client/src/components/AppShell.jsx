@@ -31,7 +31,7 @@ export function AppShell({ user, onLogout, children }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#eef2ef] text-stone-950">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dcefe5_0,#eef2ef_34%,#f7f8f5_100%)] text-stone-950">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-stone-200 bg-[#fbfcfa] shadow-sm lg:block">
         <SidebarContent user={user} onNavigate={() => setMenuOpen(false)} />
       </aside>
@@ -125,9 +125,9 @@ function SidebarContent({ user, onNavigate }) {
       </nav>
 
       <div className="absolute bottom-0 left-0 right-0 border-t border-stone-200 p-5">
-        <div className="bg-stone-100 p-4">
-          <p className="text-sm font-semibold text-stone-800">System layers</p>
-          <p className="mt-1 text-xs leading-5 text-stone-600">MongoDB records, IPFS metadata, and blockchain proof work together.</p>
+        <div className="bg-[#10241c] p-4 text-white">
+          <p className="text-sm font-semibold text-emerald-50">System layers</p>
+          <p className="mt-1 text-xs leading-5 text-emerald-100">MongoDB records, IPFS metadata, and blockchain proof work together.</p>
         </div>
       </div>
     </>
