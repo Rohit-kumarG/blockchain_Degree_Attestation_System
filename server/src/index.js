@@ -5,7 +5,7 @@ import { env } from "./config/env.js";
 async function startServer() {
   await connectDatabase();
 
-  app.listen(env.port, () => {
+  app.listen(env.port, "0.0.0.0", () => {
     console.log(`Degree attestation API running on port ${env.port}`);
   });
 }
