@@ -21,6 +21,10 @@ app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 app.use("/uploads", express.static("uploads"));
 
+app.get("/", (req, res) => {
+  res.status(200).json({ status: "success", message: "Degree Attestation API is running" });
+});
+
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/universities", universityRouter);
