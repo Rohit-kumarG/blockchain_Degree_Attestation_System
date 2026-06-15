@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 export async function apiRequest(path, { method = "GET", body, token } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -10,7 +10,15 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await response.json().catch(() => ({}));
+  const text = await response.text();
+  let data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.warn("Response is not valid JSON", err);
+    }
+  }
 
   if (!response.ok) {
     throw new Error(data.error || "Request failed");

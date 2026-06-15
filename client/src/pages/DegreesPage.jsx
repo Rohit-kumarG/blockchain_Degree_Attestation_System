@@ -1,10 +1,11 @@
-import { FilePlus2, GraduationCap, Link2 } from "lucide-react";
+import { FilePlus2, GraduationCap, Link2, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeader } from "../components/PageHeader.jsx";
 import { StatusMessage } from "../components/StatusMessage.jsx";
 import { apiRequest } from "../services/api.js";
 import { issueDegreeOnChain } from "../services/web3.js";
 import { roles } from "../utils/roleAccess.js";
+import { printDegreeCertificate } from "../services/printHelper.js";
 
 const emptyForm = {
   studentName: "",
@@ -109,7 +110,7 @@ export function DegreesPage({ token, user }) {
       {canIssueDegree ? (
       <section className="border border-stone-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center bg-emerald-700 text-white">
+          <div className="flex h-11 w-11 items-center justify-center bg-blue-800 text-white">
             <FilePlus2 size={22} />
           </div>
           <div>
@@ -158,7 +159,7 @@ export function DegreesPage({ token, user }) {
             </select>
           </label>
 
-          <button disabled={busy} type="submit" className="focus-ring inline-flex h-11 w-full items-center justify-center gap-2 bg-emerald-700 px-4 font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
+          <button disabled={busy} type="submit" className="focus-ring inline-flex h-11 w-full items-center justify-center gap-2 bg-blue-800 px-4 font-semibold text-white hover:bg-blue-900 disabled:opacity-60">
             <GraduationCap size={18} />
             {busy ? "Working..." : "Issue"}
           </button>
@@ -178,21 +179,33 @@ export function DegreesPage({ token, user }) {
                 <p className="text-sm text-stone-500">{degree.degreeTitle} · {degree.department}</p>
                 <p className="mt-2 break-all text-xs text-stone-600">{degree.degreeHash}</p>
                 <p className="mt-1 text-sm text-stone-500">ID: {degree._id}</p>
-                {degree.blockchainTxHash ? (
-                  <p className="mt-2 break-all text-xs font-medium text-emerald-800">
+                {degree.blockchainTxHash && (
+                  <p className="mt-2 break-all text-xs font-medium text-blue-800">
                     On-chain tx: {degree.blockchainTxHash}
                   </p>
-                ) : canIssueDegree ? (
+                )}
+                <div className="flex flex-wrap gap-2 mt-3">
                   <button
                     type="button"
-                    disabled={busy}
-                    onClick={() => handleIssueOnChain(degree)}
-                    className="focus-ring mt-3 inline-flex h-10 items-center gap-2 border border-stone-300 bg-white px-3 text-sm font-medium hover:bg-stone-100 disabled:opacity-60"
+                    onClick={() => printDegreeCertificate(degree)}
+                    className="focus-ring inline-flex h-9 items-center gap-1.5 border border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-900 px-3 rounded-lg text-xs font-bold transition"
                   >
-                    <Link2 size={16} />
-                    Issue on-chain
+                    <Printer size={14} />
+                    Print Degree
                   </button>
-                ) : null}
+
+                  {!degree.blockchainTxHash && canIssueDegree && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => handleIssueOnChain(degree)}
+                      className="focus-ring inline-flex h-9 items-center gap-1.5 border border-stone-300 bg-white px-3 text-xs font-medium hover:bg-stone-100 rounded-lg disabled:opacity-60 transition"
+                    >
+                      <Link2 size={14} />
+                      Issue on-chain
+                    </button>
+                  )}
+                </div>
               </div>
               {degree.qrCodeDataUrl ? (
                 <img className="h-28 w-28 border border-stone-200" src={degree.qrCodeDataUrl} alt="Degree verification QR code" />

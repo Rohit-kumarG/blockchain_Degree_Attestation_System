@@ -13,7 +13,7 @@ import { UniversityLeaderboard } from "../components/charts/UniversityLeaderboar
 import { VerificationFunnel } from "../components/charts/VerificationFunnel.jsx";
 
 const metricItems = [
-  { key: "totalUniversities", label: "Universities", icon: Building2, tone: "bg-emerald-700" },
+  { key: "totalUniversities", label: "Universities", icon: Building2, tone: "bg-blue-800" },
   { key: "totalDegrees", label: "Degrees", icon: FileCheck2, tone: "bg-sky-700" },
   { key: "verificationAttempts", label: "Verifications", icon: Activity, tone: "bg-stone-800" },
   { key: "fraudAttempts", label: "Fraud Flags", icon: SearchX, tone: "bg-red-700" },
@@ -48,15 +48,15 @@ export function DashboardPage({ token }) {
       <StatusMessage error={error} />
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        <div className="relative overflow-hidden border border-emerald-900/20 bg-[#0f2b21] p-7 text-white shadow-sm">
-          <div className="absolute -right-16 -top-16 h-56 w-56 bg-emerald-400/20 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-24 w-full bg-[linear-gradient(90deg,transparent,rgba(52,211,153,.18))]" />
+        <div className="relative overflow-hidden border border-blue-900/20 bg-blue-950 p-7 text-white shadow-sm">
+          <div className="absolute -right-16 -top-16 h-56 w-56 bg-blue-400/20 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-24 w-full bg-[linear-gradient(90deg,transparent,rgba(30,64,175,.18))]" />
           <div className="relative">
-            <p className="text-sm font-semibold uppercase text-emerald-200">Private Ethereum + IPFS + MongoDB</p>
+            <p className="text-sm font-semibold uppercase text-blue-200">Private Ethereum + IPFS + MongoDB</p>
             <h3 className="mt-3 max-w-3xl text-4xl font-semibold leading-tight">
               Tamper-evident academic credential verification platform
             </h3>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-emerald-50">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-blue-50">
               The dashboard summarizes how many institutions, degrees, verifications, blockchain confirmations, and suspicious attempts exist in the system.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -109,7 +109,7 @@ export function DashboardPage({ token }) {
         <div className="border border-stone-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-lg font-semibold">Recent Verification Activity</h3>
-            <span className="bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-900">Audit-ready</span>
+            <span className="bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-900">Audit-ready</span>
           </div>
           <div className="mt-5 space-y-3">
             {(analytics?.recentVerifications ?? []).length === 0 ? (
@@ -117,7 +117,7 @@ export function DashboardPage({ token }) {
             ) : (
               analytics.recentVerifications.map((item) => (
                 <div key={item.id} className="flex items-start gap-3 border border-stone-200 bg-stone-50 p-3">
-                  <div className="flex h-9 w-9 items-center justify-center bg-white text-emerald-700">
+                  <div className="flex h-9 w-9 items-center justify-center bg-white text-blue-800">
                     <ShieldCheck size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -142,22 +142,22 @@ export function DashboardPage({ token }) {
           <div className="mt-5 grid gap-3">
             {workflowSteps.map((step, index) => (
               <div key={step} className="flex items-center gap-3 border border-stone-200 bg-stone-50 p-3">
-                <span className="flex h-8 w-8 items-center justify-center bg-emerald-700 text-sm font-semibold text-white">{index + 1}</span>
+                <span className="flex h-8 w-8 items-center justify-center bg-blue-800 text-sm font-semibold text-white">{index + 1}</span>
                 <p className="text-sm font-medium text-stone-800">{step}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="border border-stone-200 bg-[#10241c] p-6 text-white shadow-sm">
+        <div className="border border-stone-200 bg-blue-950 p-6 text-white shadow-sm">
           <div className="flex items-center gap-3">
-            <Link2 className="text-emerald-300" />
+            <Link2 className="text-blue-300" />
             <h3 className="text-lg font-semibold">Verification Rule</h3>
           </div>
-          <p className="mt-4 text-sm leading-6 text-emerald-50">
+          <p className="mt-4 text-sm leading-6 text-blue-50">
             A degree is trusted only when the recomputed backend hash matches the stored proof and the credential has not been revoked.
           </p>
-          <div className="mt-5 bg-white/10 p-4 font-mono text-xs leading-6 text-emerald-50">
+          <div className="mt-5 bg-white/10 p-4 font-mono text-xs leading-6 text-blue-50">
             computedHash == blockchainHash
             <br />
             revoked == false
@@ -171,7 +171,7 @@ export function DashboardPage({ token }) {
 function HeroPill({ label, value }) {
   return (
     <div className="border border-white/20 bg-white/10 p-4 backdrop-blur">
-      <p className="text-xs font-semibold uppercase text-emerald-100">{label}</p>
+      <p className="text-xs font-semibold uppercase text-blue-100">{label}</p>
       <p className="mt-2 text-2xl font-semibold">{value}</p>
     </div>
   );

@@ -1,14 +1,16 @@
 import { LockKeyhole, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { apiRequest } from "../services/api.js";
 import { StatusMessage } from "../components/StatusMessage.jsx";
 
 export function LoginPage({ onLogin }) {
-  const [mode, setMode] = useState("signin");
+  const location = useLocation();
+  const [mode, setMode] = useState(location.state?.mode || "signin");
   const [form, setForm] = useState({
     name: "",
-    email: "admin@example.com",
-    password: "ChangeMe123!",
+    email: location.state?.mode === "signup" ? "" : "admin@example.com",
+    password: location.state?.mode === "signup" ? "" : "ChangeMe123!",
     role: "STUDENT",
   });
   const [error, setError] = useState("");
@@ -18,6 +20,15 @@ export function LoginPage({ onLogin }) {
     event.preventDefault();
     setError("");
     setLoading(true);
+
+    if (mode === "signup") {
+      const emailDomain = form.email.split("@")[1]?.toLowerCase();
+      if (emailDomain !== "iqra.edu.pk" && !emailDomain?.endsWith(".iqra.edu.pk")) {
+        setError("Only Iqra University email addresses (ending with @iqra.edu.pk) are allowed to sign up.");
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       const body =
@@ -48,18 +59,18 @@ export function LoginPage({ onLogin }) {
   }
 
   return (
-    <main className="grid min-h-screen bg-[#eef2ef] lg:grid-cols-[1fr_500px]">
+    <main className="grid min-h-screen bg-slate-100 lg:grid-cols-[1fr_500px]">
       <section className="relative flex items-center overflow-hidden px-6 py-10 sm:px-10">
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,#0f2b21_0%,#1f6f55_48%,#d7e7df_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,#0b2240_0%,#1e40af_48%,#dbeafe_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-white/10" />
         <div className="relative max-w-3xl text-white">
-          <div className="mb-6 flex h-14 w-14 items-center justify-center bg-white text-emerald-800 shadow-sm">
-            <ShieldCheck size={30} />
+          <div className="mb-6 flex h-14 w-14 items-center justify-center bg-white p-2 shadow-sm rounded-lg">
+            <img src="/logoiqra.png" alt="Iqra Logo" className="h-10 w-auto object-contain" />
           </div>
           <h1 className="max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl">
-            Degree Attestation Operations Console
+            Iqra University Degree Attestation Portal
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-emerald-50">
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-blue-50">
             Issue trusted degree records, generate tamper-evident hashes, and verify credentials through the backend and blockchain proof layer.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -87,14 +98,14 @@ export function LoginPage({ onLogin }) {
             <button
               type="button"
               onClick={() => switchMode("signin")}
-              className={`h-10 text-sm font-semibold ${mode === "signin" ? "bg-emerald-700 text-white" : "text-stone-700"}`}
+              className={`h-10 text-sm font-semibold ${mode === "signin" ? "bg-blue-800 text-white" : "text-stone-700"}`}
             >
               Sign in
             </button>
             <button
               type="button"
               onClick={() => switchMode("signup")}
-              className={`h-10 text-sm font-semibold ${mode === "signup" ? "bg-emerald-700 text-white" : "text-stone-700"}`}
+              className={`h-10 text-sm font-semibold ${mode === "signup" ? "bg-blue-800 text-white" : "text-stone-700"}`}
             >
               Sign up
             </button>
@@ -161,7 +172,7 @@ export function LoginPage({ onLogin }) {
           <button
             type="submit"
             disabled={loading}
-            className="focus-ring flex h-12 w-full items-center justify-center bg-emerald-700 px-4 font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+            className="focus-ring flex h-12 w-full items-center justify-center bg-blue-800 px-4 font-semibold text-white hover:bg-blue-900 disabled:opacity-60"
           >
             {loading ? "Please wait..." : mode === "signin" ? "Sign in" : "Sign up"}
           </button>

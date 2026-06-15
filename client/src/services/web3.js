@@ -4,6 +4,7 @@ export const degreeContractAbi = [
   "function approveUniversity(address universityWallet,string name)",
   "function issueDegree(bytes32 degreeHash,address studentWallet,string ipfsCID)",
   "function verifyDegree(bytes32 degreeHash) view returns (bool valid,address studentWallet,address universityWallet,string ipfsCID,uint256 issuedAt,bool revoked,string revokedReason)",
+  "function payFee(bytes32 degreeHash) payable",
 ];
 
 export function getConfiguredContractAddress() {
@@ -46,6 +47,19 @@ export async function getDegreeContract() {
 export async function approveUniversityOnChain({ universityWallet, name }) {
   const { contract, contractAddress, chainId } = await getDegreeContract();
   const tx = await contract.approveUniversity(universityWallet, name);
+  const receipt = await tx.wait();
+
+  return {
+    txHash: receipt.hash,
+    contractAddress,
+    chainId,
+  };
+}
+
+export async function payAttestationFeeOnChain({ degreeHash }) {
+  const { contract, contractAddress, chainId } = await getDegreeContract();
+  const fee = ethers.parseEther("0.001");
+  const tx = await contract.payFee(degreeHash, { value: fee });
   const receipt = await tx.wait();
 
   return {

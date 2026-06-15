@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 contract DegreeAttestation {
     address public superAdmin;
+    uint256 public attestationFee = 0.001 ether;
 
     struct University {
         string name;
@@ -22,9 +23,11 @@ contract DegreeAttestation {
 
     mapping(address => University) public universities;
     mapping(bytes32 => DegreeRecord) private degrees;
+    mapping(bytes32 => bool) public paidFees;
 
     event UniversityApproved(address indexed universityWallet, string name, uint256 approvedAt);
     event UniversityDeactivated(address indexed universityWallet, uint256 deactivatedAt);
+    event FeePaid(bytes32 indexed degreeHash, address indexed studentWallet, uint256 amount);
     event DegreeIssued(
         bytes32 indexed degreeHash,
         address indexed studentWallet,
@@ -51,6 +54,19 @@ contract DegreeAttestation {
 
     constructor() {
         superAdmin = msg.sender;
+    }
+
+    function setAttestationFee(uint256 _fee) external onlySuperAdmin {
+        attestationFee = _fee;
+    }
+
+    function payFee(bytes32 degreeHash) external payable {
+        require(msg.value >= attestationFee, "Insufficient fee sent");
+        require(!paidFees[degreeHash], "Fee already paid for this degree");
+        paidFees[degreeHash] = true;
+        
+        payable(superAdmin).transfer(msg.value);
+        emit FeePaid(degreeHash, msg.sender, msg.value);
     }
 
     function approveUniversity(address universityWallet, string calldata name) external onlySuperAdmin {
@@ -83,6 +99,7 @@ contract DegreeAttestation {
         require(studentWallet != address(0), "Invalid student wallet");
         require(bytes(ipfsCID).length > 0, "IPFS CID is required");
         require(degrees[degreeHash].issuedAt == 0, "Degree already issued");
+        require(paidFees[degreeHash], "Attestation fee has not been paid");
 
         degrees[degreeHash] = DegreeRecord({
             degreeHash: degreeHash,

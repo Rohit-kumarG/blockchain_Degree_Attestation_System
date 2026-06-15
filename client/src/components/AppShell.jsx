@@ -23,6 +23,18 @@ const navItems = [
     icon: GraduationCap,
     roles: [roles.SUPER_ADMIN, roles.UNIVERSITY_ADMIN, roles.UNIVERSITY_STAFF, roles.STUDENT],
   },
+  {
+    to: "/request-attestation",
+    label: "Request Attestation",
+    icon: FileCheck2,
+    roles: [roles.STUDENT],
+  },
+  {
+    to: "/admin-requests",
+    label: "Review Requests",
+    icon: FileCheck2,
+    roles: [roles.SUPER_ADMIN, roles.UNIVERSITY_ADMIN, roles.UNIVERSITY_STAFF],
+  },
   { to: "/verify", label: "Verify", icon: QrCode, roles: Object.values(roles) },
   { to: "/audit", label: "Audit Logs", icon: History, roles: [roles.SUPER_ADMIN, roles.AUDITOR] },
 ];
@@ -31,7 +43,7 @@ export function AppShell({ user, onLogout, children }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dcefe5_0,#eef2ef_34%,#f7f8f5_100%)] text-stone-950">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_34%,#ffffff_100%)] text-stone-950">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-stone-200 bg-[#fbfcfa] shadow-sm lg:block">
         <SidebarContent user={user} onNavigate={() => setMenuOpen(false)} />
       </aside>
@@ -95,12 +107,10 @@ function SidebarContent({ user, onNavigate }) {
   return (
     <>
       <div className="flex h-24 items-center gap-3 border-b border-stone-200 px-6">
-        <div className="flex h-12 w-12 items-center justify-center bg-emerald-700 text-white shadow-sm">
-          <ShieldCheck size={26} />
-        </div>
+        <img src="/logoiqra.png" alt="Iqra Logo" className="h-10 w-auto object-contain" />
         <div>
-          <p className="text-sm font-semibold uppercase text-emerald-800">Blockchain</p>
-          <h1 className="text-lg font-semibold leading-tight">Degree Attestation</h1>
+          <p className="text-[10px] font-bold uppercase text-blue-800">Iqra University</p>
+          <h1 className="text-sm font-semibold leading-tight text-blue-950">Attestation Portal</h1>
         </div>
       </div>
 
@@ -113,7 +123,7 @@ function SidebarContent({ user, onNavigate }) {
             className={({ isActive }) =>
               `focus-ring flex min-h-12 items-center gap-3 px-3 text-sm font-medium transition ${
                 isActive
-                  ? "bg-emerald-700 text-white shadow-sm"
+                  ? "bg-blue-800 text-white shadow-sm"
                   : "text-stone-600 hover:bg-stone-100 hover:text-stone-950"
               }`
             }
@@ -125,9 +135,9 @@ function SidebarContent({ user, onNavigate }) {
       </nav>
 
       <div className="absolute bottom-0 left-0 right-0 border-t border-stone-200 p-5">
-        <div className="bg-[#10241c] p-4 text-white">
-          <p className="text-sm font-semibold text-emerald-50">System layers</p>
-          <p className="mt-1 text-xs leading-5 text-emerald-100">MongoDB records, IPFS metadata, and blockchain proof work together.</p>
+        <div className="bg-blue-950 p-4 text-white">
+          <p className="text-sm font-semibold text-blue-50">Main Campus Portal</p>
+          <p className="mt-1 text-xs leading-5 text-blue-200">MongoDB records, IPFS metadata, and blockchain proof work together.</p>
         </div>
       </div>
     </>

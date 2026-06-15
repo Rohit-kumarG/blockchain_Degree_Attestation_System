@@ -6,6 +6,9 @@ import { DegreesPage } from "./pages/DegreesPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { UniversitiesPage } from "./pages/UniversitiesPage.jsx";
 import { VerificationPage } from "./pages/VerificationPage.jsx";
+import { RequestAttestationPage } from "./pages/RequestAttestationPage.jsx";
+import { AdminRequestsPage } from "./pages/AdminRequestsPage.jsx";
+import { LandingPage } from "./pages/LandingPage.jsx";
 import { clearSession, loadSession, saveSession } from "./utils/auth.js";
 import { useState } from "react";
 import { canAccess, defaultRouteForRole, roles } from "./utils/roleAccess.js";
@@ -23,14 +26,16 @@ export function App() {
   function handleLogout() {
     clearSession();
     setSession({ token: null, user: null });
-    navigate("/login");
+    navigate("/");
   }
 
   if (!session.token) {
     return (
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/verify" element={<VerificationPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
   }
@@ -53,6 +58,26 @@ export function App() {
           element={
             canAccess(session.user.role, [roles.SUPER_ADMIN]) ? (
               <UniversitiesPage token={session.token} />
+            ) : (
+              <Navigate to={defaultRouteForRole(session.user.role)} replace />
+            )
+          }
+        />
+        <Route
+          path="/request-attestation"
+          element={
+            canAccess(session.user.role, [roles.STUDENT]) ? (
+              <RequestAttestationPage token={session.token} />
+            ) : (
+              <Navigate to={defaultRouteForRole(session.user.role)} replace />
+            )
+          }
+        />
+        <Route
+          path="/admin-requests"
+          element={
+            canAccess(session.user.role, [roles.SUPER_ADMIN, roles.UNIVERSITY_ADMIN, roles.UNIVERSITY_STAFF]) ? (
+              <AdminRequestsPage token={session.token} />
             ) : (
               <Navigate to={defaultRouteForRole(session.user.role)} replace />
             )
