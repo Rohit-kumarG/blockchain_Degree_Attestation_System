@@ -13,7 +13,11 @@ import {
   extractPercentage,
   extractCgpa,
   extractNicExpiry,
-  extractNicNumber
+  extractNicNumber,
+  extractDob,
+  extractFatherName,
+  extractGender,
+  extractAddress
 } from "../services/ocrService.js";
 import { createDegreeHash } from "../utils/hashDegree.js";
 import { createDegreeMetadataCID } from "../services/ipfs.service.js";
@@ -431,7 +435,19 @@ export const ocrPreview = asyncHandler(async (req, res) => {
       value = extractCgpa(text);
     } else if (type === "nic") {
       const expiry = extractNicExpiry(text);
-      value = expiry ? expiry.toISOString().split("T")[0] : null;
+      const expiryStr = expiry ? expiry.toISOString().split("T")[0] : null;
+      const dobStr = extractDob(text);
+      const fatherName = extractFatherName(text);
+      const gender = extractGender(text);
+      const address = extractAddress(text);
+      
+      value = {
+        nicExpiryDate: expiryStr,
+        dob: dobStr,
+        fatherName: fatherName,
+        gender: gender,
+        address: address
+      };
     }
   } catch (error) {
     console.error("OCR preview processing failed:", error);

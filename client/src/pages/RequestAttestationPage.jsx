@@ -199,7 +199,18 @@ export function RequestAttestationPage({ token }) {
           setForm(prev => ({ ...prev, cgpa: data.value }));
           setOcrPassed(prev => ({ ...prev, transcript: true }));
         } else if (field === "nicFront" || field === "nicBack") {
-          setForm(prev => ({ ...prev, nicExpiryDate: data.value }));
+          if (data.value && typeof data.value === "object") {
+            setForm(prev => ({
+              ...prev,
+              nicExpiryDate: data.value.nicExpiryDate || prev.nicExpiryDate,
+              dob: data.value.dob || prev.dob,
+              fatherName: data.value.fatherName || prev.fatherName,
+              gender: data.value.gender || prev.gender,
+              address: data.value.address || prev.address
+            }));
+          } else {
+            setForm(prev => ({ ...prev, nicExpiryDate: data.value || "" }));
+          }
           setOcrPassed(prev => ({ ...prev, [field]: true }));
         }
       }

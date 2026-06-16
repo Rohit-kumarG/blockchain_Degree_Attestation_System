@@ -292,6 +292,110 @@ export function extractName(text) {
 }
 
 /**
+ * Extracts Father's Name from NIC text.
+ * @param {string} text 
+ * @returns {string|null}
+ */
+export function extractFatherName(text) {
+  if (!text) return null;
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/father/i.test(line)) {
+      const colonMatch = line.match(/(?:father\s+name|father|husband)[:\s]+([A-Za-z\s]+)/i);
+      if (colonMatch && colonMatch[1].trim().length > 3) {
+        return colonMatch[1].trim().toUpperCase();
+      }
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i + 1];
+        if (/^[A-Za-z\s]+$/.test(nextLine) && nextLine.trim().length > 3) {
+          return nextLine.trim().toUpperCase();
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Extracts Date of Birth from NIC text.
+ * @param {string} text 
+ * @returns {string|null}
+ */
+export function extractDob(text) {
+  if (!text) return null;
+  const lines = text.split("\n");
+  for (const line of lines) {
+    if (/dob|birth|bth/i.test(line)) {
+      const lineMatch = line.match(/\b(\d{2}|\d{4})[-/.](\d{2})[-/.](\d{2}|\d{4})\b/);
+      if (lineMatch) {
+        const p1 = lineMatch[1];
+        const p2 = lineMatch[2];
+        const p3 = lineMatch[3];
+        let year, month, day;
+        if (p1.length === 4) {
+          year = parseInt(p1);
+          month = parseInt(p2);
+          day = parseInt(p3);
+        } else {
+          day = parseInt(p1);
+          month = parseInt(p2);
+          year = parseInt(p3);
+          if (year < 100) year += year > 30 ? 1900 : 2000;
+        }
+        const mm = String(month).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        return `${year}-${mm}-${dd}`;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Extracts Gender from NIC text.
+ * @param {string} text 
+ * @returns {string|null}
+ */
+export function extractGender(text) {
+  if (!text) return null;
+  if (/\b(female|women|girl)\b/i.test(text)) {
+    return "Female";
+  }
+  if (/\b(male|boy|man)\b/i.test(text)) {
+    return "Male";
+  }
+  return null;
+}
+
+/**
+ * Extracts Address from NIC text.
+ * @param {string} text 
+ * @returns {string|null}
+ */
+export function extractAddress(text) {
+  if (!text) return null;
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/address/i.test(line)) {
+      const colonMatch = line.match(/address[:\s]+(.+)/i);
+      if (colonMatch && colonMatch[1].trim().length > 10) {
+        return colonMatch[1].trim();
+      }
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i + 1];
+        if (nextLine.trim().length > 10) {
+          return nextLine.trim();
+        }
+      }
+    }
+  }
+  return null;
+}
+
+
+/**
  * Checks if two names match using basic token matching.
  * @param {string} name1 
  * @param {string} name2 
