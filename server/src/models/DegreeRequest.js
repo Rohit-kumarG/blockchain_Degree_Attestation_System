@@ -95,6 +95,7 @@ const degreeRequestSchema = new mongoose.Schema(
     },
     degreeHash: { type: String, unique: true, sparse: true },
     ipfsCID: { type: String, trim: true },
+    issueDate: { type: Date },
   },
   { timestamps: true }
 );

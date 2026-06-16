@@ -29,6 +29,25 @@ export async function verifyDegreeByHash({ degreeHash, req }) {
 
   const blockchain = await readDegreeFromBlockchain(degree.degreeHash);
   const hashMatches = computedHash === degree.degreeHash;
+
+  if (!hashMatches) {
+    console.log("--- HASH MISMATCH DEBUG ---");
+    console.log("Stored hash in DB:", degree.degreeHash);
+    console.log("Computed hash:", computedHash);
+    console.log("Payload used for computation:", {
+      studentName: degree.studentName,
+      studentEmail: degree.studentEmail,
+      studentWallet: degree.studentWallet,
+      degreeTitle: degree.degreeTitle,
+      department: degree.department,
+      graduationYear: degree.graduationYear,
+      universityId: degree.university._id.toString(),
+      ipfsCID: degree.ipfsCID,
+      issueDate: degree.issueDate.toISOString(),
+    });
+    console.log("---------------------------");
+  }
+
   const blockchainMatches = !blockchain.configured || !blockchain.exists || blockchain.ipfsCID === degree.ipfsCID;
 
   let result = "VALID";
@@ -100,6 +119,25 @@ export async function verifyDegreeById({ degreeId, req }) {
 
   const blockchain = await readDegreeFromBlockchain(degree.degreeHash);
   const hashMatches = computedHash === degree.degreeHash;
+
+  if (!hashMatches) {
+    console.log("--- HASH MISMATCH DEBUG (BY ID) ---");
+    console.log("Stored hash in DB:", degree.degreeHash);
+    console.log("Computed hash:", computedHash);
+    console.log("Payload used for computation:", {
+      studentName: degree.studentName,
+      studentEmail: degree.studentEmail,
+      studentWallet: degree.studentWallet,
+      degreeTitle: degree.degreeTitle,
+      department: degree.department,
+      graduationYear: degree.graduationYear,
+      universityId: degree.university._id.toString(),
+      ipfsCID: degree.ipfsCID,
+      issueDate: degree.issueDate.toISOString(),
+    });
+    console.log("-----------------------------------");
+  }
+
   const blockchainMatches = !blockchain.configured || !blockchain.exists || blockchain.ipfsCID === degree.ipfsCID;
 
   let result = "VALID";

@@ -26,6 +26,11 @@ import { writeAuditLog } from "../services/audit.service.js";
 
 // Helper to auto-issue a degree record when verification and payment succeeds
 export async function autoIssueDegree(request, req) {
+  // Populate student if not already populated
+  if (request.populate && (!request.student || !request.student.email)) {
+    await request.populate("student");
+  }
+
   let issuer = await User.findOne({ university: request.university._id || request.university, role: roles.UNIVERSITY_ADMIN });
   if (!issuer) {
     issuer = await User.findOne({ role: roles.SUPER_ADMIN });
@@ -41,7 +46,7 @@ export async function autoIssueDegree(request, req) {
       degreeTitle: request.degreeTitle,
       department: request.department,
       graduationYear: request.graduationYear,
-      issueDate: new Date(),
+      issueDate: request.issueDate || new Date(),
       university: request.university._id || request.university,
       issuedBy: issuerId,
       ipfsCID: request.ipfsCID,
@@ -219,6 +224,7 @@ export const createDegreeRequest = asyncHandler(async (req, res) => {
     graduationYear: Number(graduationYear),
     documentUrl,
     rollNumber: rollNumber || "",
+    issueDate: issueDate,
     
     // Personal Details
     fatherName: fatherName || "",
