@@ -1,5 +1,6 @@
 import Tesseract from "tesseract.js";
 import fs from "fs";
+import path from "path";
 
 /**
  * Perform OCR on a single file.
@@ -11,7 +12,11 @@ export async function performOcr(filePath) {
     return "";
   }
   try {
-    const { data: { text } } = await Tesseract.recognize(filePath, "eng");
+    const langPath = "c:/Users/hp/Desktop/Degree-Attestation-System/server";
+    const { data: { text } } = await Tesseract.recognize(filePath, "eng", {
+      langPath,
+      gzip: false
+    });
     return text || "";
   } catch (error) {
     console.error(`OCR failed for ${filePath}:`, error);
@@ -163,8 +168,8 @@ export function extractCgpa(text) {
 export function extractNicExpiry(text) {
   if (!text) return null;
 
-  // Search for date patterns like DD.MM.YYYY, DD/MM/YYYY, YYYY-MM-DD
-  const dateRegex = /\b(\d{2}|\d{4})[-/.](\d{2})[-/.](\d{2}|\d{4})\b/g;
+  // Search for date patterns like DD.MM.YYYY, DD/MM/YYYY, YYYY-MM-DD (allow space/comma separators too)
+  const dateRegex = /\b(\d{2}|\d{4})[-/.,\s]+(\d{2})[-/.,\s]+(\d{2}|\d{4})\b/g;
   let match;
   const dates = [];
 
@@ -187,9 +192,11 @@ export function extractNicExpiry(text) {
       }
     }
 
-    const d = new Date(year, month, day);
-    if (!isNaN(d.getTime())) {
-      dates.push(d);
+    if (month >= 0 && month < 12 && day >= 1 && day <= 31) {
+      const d = new Date(year, month, day);
+      if (!isNaN(d.getTime())) {
+        dates.push(d);
+      }
     }
   }
 
@@ -198,7 +205,7 @@ export function extractNicExpiry(text) {
   for (const line of lines) {
     if (/expiry|expires|valid|exp/i.test(line)) {
       // Find the date in this line
-      const lineMatch = line.match(/\b(\d{2}|\d{4})[-/.](\d{2})[-/.](\d{2}|\d{4})\b/);
+      const lineMatch = line.match(/\b(\d{2}|\d{4})[-/.,\s]+(\d{2})[-/.,\s]+(\d{2}|\d{4})\b/);
       if (lineMatch) {
         const p1 = lineMatch[1];
         const p2 = lineMatch[2];
@@ -216,16 +223,24 @@ export function extractNicExpiry(text) {
             year += 2000;
           }
         }
-        const d = new Date(year, month, day);
-        if (!isNaN(d.getTime())) {
-          return d;
+        if (month >= 0 && month < 12 && day >= 1 && day <= 31) {
+          const d = new Date(year, month, day);
+          if (!isNaN(d.getTime())) {
+            return d;
+          }
         }
       }
     }
   }
 
-  // Fallback to the last date found (which is often the expiry date since issue date comes first)
+  // Fallback to the latest date found (which is often the expiry date)
   if (dates.length > 0) {
+    dates.sort((a, b) => a.getTime() - b.getTime());
+    // Prioritize future dates
+    const futureDates = dates.filter(d => d.getTime() > Date.now());
+    if (futureDates.length > 0) {
+      return futureDates[0];
+    }
     return dates[dates.length - 1];
   }
 

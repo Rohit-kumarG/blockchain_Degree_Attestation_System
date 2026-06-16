@@ -435,19 +435,7 @@ export const ocrPreview = asyncHandler(async (req, res) => {
       value = extractCgpa(text);
     } else if (type === "nic") {
       const expiry = extractNicExpiry(text);
-      const expiryStr = expiry ? expiry.toISOString().split("T")[0] : null;
-      const dobStr = extractDob(text);
-      const fatherName = extractFatherName(text);
-      const gender = extractGender(text);
-      const address = extractAddress(text);
-      
-      value = {
-        nicExpiryDate: expiryStr,
-        dob: dobStr,
-        fatherName: fatherName,
-        gender: gender,
-        address: address
-      };
+      value = expiry ? expiry.toISOString().split("T")[0] : null;
     }
   } catch (error) {
     console.error("OCR preview processing failed:", error);

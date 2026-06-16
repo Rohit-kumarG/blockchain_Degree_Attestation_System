@@ -1,381 +1,274 @@
 import React from "react";
 
+/**
+ * Premium Admin Analytics Dashboard
+ * Uses real data from requests prop
+ */
 export function AdminAnalyticsDashboard({ requests = [] }) {
-  // Compute real metrics from requests list
-  const total = requests.length || 1;
-  const issued = requests.filter(r => r.status === "ISSUED").length;
-  const rejected = requests.filter(r => r.status === "REJECTED").length;
-  const paid = requests.filter(r => r.status === "PAID").length;
-  const pendingVerify = requests.filter(r => r.status === "PENDING_VERIFICATION" || r.status === "VERIFICATION_FAILED").length;
+  const total = requests.length;
+  const issued    = requests.filter(r => r.status === "ISSUED").length;
+  const rejected  = requests.filter(r => r.status === "REJECTED").length;
+  const paid      = requests.filter(r => r.status === "PAID").length;
+  const pendingVerify  = requests.filter(r => r.status === "PENDING_VERIFICATION" || r.status === "VERIFICATION_FAILED").length;
   const pendingPayment = requests.filter(r => r.status === "PENDING_PAYMENT").length;
+  const yoloVerified   = requests.filter(r => r.yoloStatus === "VERIFIED").length;
+  const ocrPassed      = requests.filter(r => r.ocrStatus === "PASSED").length;
 
-  const yoloVerified = requests.filter(r => r.yoloStatus === "VERIFIED").length;
-  const ocrPassed = requests.filter(r => r.ocrStatus === "PASSED").length;
+  const safe = (n, d) => (d === 0 ? 0 : Math.round((n / d) * 100));
+  const ocrRate      = safe(ocrPassed, total);
+  const yoloRate     = safe(yoloVerified, total);
+  const issuanceRate = safe(issued, total);
+  const paymentRate  = safe(paid + issued, total);
 
-  // Percentage calculations
-  const ocrPassRate = Math.round((ocrPassed / total) * 100) || 0;
-  const yoloPassRate = Math.round((yoloVerified / total) * 100) || 0;
-  const issuanceRate = Math.round((issued / total) * 100) || 0;
-  const paymentRate = Math.round(((paid + issued) / total) * 100) || 0;
+  // ── Monthly trend (last 6 months) built from real request dates ──────────
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    return { year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleString("default", { month: "short" }) };
+  });
 
-  // Let's generate a trend based on actual request creation dates or fallback
-  // Create 10 data points (A to J)
-  const getTrendData = (filterFn, defaultVals) => {
-    if (requests.length < 5) return defaultVals;
-    // Split requests into 10 chunks to get trend
-    const chunkSize = Math.max(1, Math.floor(requests.length / 10));
-    const values = [];
-    for (let i = 0; i < 10; i++) {
-      const slice = requests.slice(i * chunkSize, (i + 1) * chunkSize);
-      const count = slice.filter(filterFn).length;
-      // Scale to fit grid (0 to 180 range)
-      values.push(Math.min(170, Math.max(20, count * 35 + 20)));
-    }
-    return values;
-  };
+  const monthlyData = months.map(({ year, month, label }) => {
+    const all      = requests.filter(r => { const d = new Date(r.createdAt); return d.getFullYear() === year && d.getMonth() === month; }).length;
+    const approved = requests.filter(r => { const d = new Date(r.createdAt); return d.getFullYear() === year && d.getMonth() === month && r.status === "ISSUED"; }).length;
+    const rej      = requests.filter(r => { const d = new Date(r.createdAt); return d.getFullYear() === year && d.getMonth() === month && r.status === "REJECTED"; }).length;
+    return { label, all, approved, rejected: rej };
+  });
 
-  const trendTeal = getTrendData(r => r.status === "ISSUED" || r.status === "PAID", [100, 120, 110, 80, 100, 70, 60, 90, 80, 115]);
-  const trendRose = getTrendData(r => r.status === "REJECTED", [60, 95, 80, 55, 40, 85, 80, 50, 110, 135]);
+  const maxMonthly = Math.max(1, ...monthlyData.map(m => m.all));
 
-  // Points generators for SVGs
-  const makePoints = (vals) => vals.map((v, i) => `${(i / 9) * 100},${100 - (v / 180) * 100}`);
-  const makeAreaPoints = (vals) => {
-    const pts = makePoints(vals);
-    return `0,100 ${pts.join(" ")} 100,100`;
-  };
+  // ── Status donut segments ─────────────────────────────────────────────────
+  const statusData = [
+    { label: "Issued",          value: issued,         color: "#22d3ee" },
+    { label: "Rejected",        value: rejected,        color: "#f43f5e" },
+    { label: "Paid",            value: paid,            color: "#a78bfa" },
+    { label: "Pending Verify",  value: pendingVerify,  color: "#fbbf24" },
+    { label: "Pending Payment", value: pendingPayment, color: "#34d399" },
+  ].filter(s => s.value > 0);
 
-  // Calendar dates for the current month
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth();
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const startDay = new Date(currentYear, currentMonth, 1).getDay(); // 0 is Sunday, 1 is Monday...
+  // Build donut arcs
+  const radius = 36;
+  const circ   = 2 * Math.PI * radius;
+  let offset   = 0;
+  const totalStatus = statusData.reduce((s, d) => s + d.value, 0) || 1;
+  const donutSlices = statusData.map(s => {
+    const pct  = s.value / totalStatus;
+    const dash = pct * circ;
+    const gap  = circ - dash;
+    const slice = { ...s, dasharray: `${dash} ${gap}`, dashoffset: circ - offset, pct: Math.round(pct * 100) };
+    offset += dash;
+    return slice;
+  });
 
-  const calendarDays = [];
-  // Fill empty slots before start of month
-  for (let i = 1; i < (startDay === 0 ? 7 : startDay); i++) {
-    calendarDays.push(null);
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    calendarDays.push(i);
+  // ── Circular progress ring helper ─────────────────────────────────────────
+  const Ring = ({ pct, color, label, sublabel }) => (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative w-20 h-20">
+        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#1e293b" strokeWidth="3.5" />
+          <circle
+            cx="18" cy="18" r="15.9" fill="none"
+            stroke={color} strokeWidth="3.5" strokeLinecap="round"
+            strokeDasharray={`${pct} ${100 - pct}`}
+            style={{ filter: `drop-shadow(0 0 4px ${color})` }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-base font-black text-white leading-none">{pct}%</span>
+          <span className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">{sublabel}</span>
+        </div>
+      </div>
+      <span className="text-[10px] text-slate-400 font-semibold text-center leading-tight">{label}</span>
+    </div>
+  );
+
+  if (total === 0) {
+    return (
+      <div className="rounded-2xl bg-[#0f172a] border border-slate-800 p-8 text-center text-slate-500 text-sm font-medium">
+        No application data yet. Analytics will appear here once requests are submitted.
+      </div>
+    );
   }
 
   return (
-    <div className="bg-[#0f172a] border border-blue-900/30 rounded-2xl p-6 text-white shadow-2xl space-y-8 font-sans">
-      <div className="flex justify-between items-center border-b border-blue-900/40 pb-4">
+    <div className="rounded-2xl bg-[#0f172a] border border-slate-800/60 shadow-2xl overflow-hidden font-sans">
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-[#0f172a] to-[#0c1d3a]">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-blue-100 uppercase">attestation neural control deck</h2>
-          <p className="text-xs text-blue-300 font-medium mt-1">Real-time cryptographic credentials & AI verification engine telemetry</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 mb-0.5">Admin Control Deck</p>
+          <h2 className="text-base font-extrabold text-white">Attestation Analytics Overview</h2>
         </div>
-        <span className="bg-blue-500/10 border border-blue-400/20 px-3 py-1 text-xs font-bold text-blue-300 rounded-full animate-pulse">
-          LIVE ENGINE OK
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Live</span>
+          <span className="ml-3 text-xs font-bold text-slate-400">{total} total requests</span>
+        </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-12">
-        {/* Left Column - Graphs */}
-        <div className="lg:col-span-7 space-y-8">
-          
-          {/* Top Graph: Double Area Chart */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-end">
+      <div className="p-6 space-y-6">
+
+        {/* ── Row 1: KPI Cards ───────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Issued",          value: issued,         icon: "✅", color: "from-cyan-600/20 to-cyan-900/10 border-cyan-700/30", text: "text-cyan-300" },
+            { label: "Rejected",        value: rejected,       icon: "❌", color: "from-rose-600/20 to-rose-900/10 border-rose-700/30", text: "text-rose-300" },
+            { label: "Pending Verify",  value: pendingVerify,  icon: "🔍", color: "from-amber-600/20 to-amber-900/10 border-amber-700/30", text: "text-amber-300" },
+            { label: "Pending Payment", value: pendingPayment, icon: "💳", color: "from-violet-600/20 to-violet-900/10 border-violet-700/30", text: "text-violet-300" },
+          ].map(c => (
+            <div key={c.label} className={`rounded-xl bg-gradient-to-br ${c.color} border p-4`}>
+              <div className="text-xl mb-1">{c.icon}</div>
+              <div className={`text-2xl font-black ${c.text}`}>{c.value}</div>
+              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-1">{c.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Row 2: Monthly Bar Chart + Donut ──────────────────────────── */}
+        <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+
+          {/* Monthly grouped bar chart */}
+          <div className="rounded-xl bg-[#0d1527] border border-slate-800 p-5">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-blue-100">Document Verification Volatility</h3>
-                <p className="text-[10px] text-blue-400">Comparing verified documents (Teal) vs anomalies/rejected logs (Rose)</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Monthly Breakdown</p>
+                <h3 className="text-sm font-bold text-white mt-0.5">Request Volume (Last 6 Months)</h3>
               </div>
-              <span className="text-[10px] bg-blue-900/40 px-2 py-0.5 text-blue-300 font-bold border border-blue-800/50 rounded">Interval A-J</span>
+              <div className="flex gap-3 text-[10px] font-bold">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-cyan-400 inline-block" /> Submitted</span>
+                <span className="flex items-center gap-1 text-slate-400"><span className="w-2 h-2 rounded-sm bg-emerald-400 inline-block" /> Issued</span>
+                <span className="flex items-center gap-1 text-slate-400"><span className="w-2 h-2 rounded-sm bg-rose-400 inline-block" /> Rejected</span>
+              </div>
             </div>
-            
-            <div className="relative bg-[#0d1527] border border-blue-900/40 p-4 rounded-xl">
-              {/* Y-axis Gridlines */}
-              <div className="absolute inset-y-4 left-4 right-4 flex flex-col justify-between pointer-events-none">
-                {[180, 160, 140, 120, 100, 80, 60, 40, 20].map((val) => (
-                  <div key={val} className="w-full flex items-center gap-2">
-                    <span className="text-[9px] font-semibold text-blue-400/60 w-5 text-right">{val}</span>
-                    <div className="flex-1 border-t border-blue-950/20"></div>
+
+            <div className="flex items-end gap-2 h-36">
+              {monthlyData.map((m) => {
+                const totalH   = Math.round((m.all      / maxMonthly) * 100);
+                const approvedH = Math.round((m.approved / maxMonthly) * 100);
+                const rejectedH = Math.round((m.rejected / maxMonthly) * 100);
+                return (
+                  <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="flex gap-0.5 items-end w-full h-28">
+                      {/* Total bar */}
+                      <div className="flex-1 flex flex-col justify-end h-full" title={`${m.all} submitted`}>
+                        <div
+                          className="w-full rounded-t-sm bg-gradient-to-t from-cyan-600 to-cyan-400"
+                          style={{ height: `${totalH}%`, boxShadow: "0 0 6px #22d3ee55", minHeight: m.all > 0 ? "4px" : "0" }}
+                        />
+                      </div>
+                      {/* Issued bar */}
+                      <div className="flex-1 flex flex-col justify-end h-full" title={`${m.approved} issued`}>
+                        <div
+                          className="w-full rounded-t-sm bg-gradient-to-t from-emerald-600 to-emerald-400"
+                          style={{ height: `${approvedH}%`, boxShadow: "0 0 6px #34d39955", minHeight: m.approved > 0 ? "4px" : "0" }}
+                        />
+                      </div>
+                      {/* Rejected bar */}
+                      <div className="flex-1 flex flex-col justify-end h-full" title={`${m.rejected} rejected`}>
+                        <div
+                          className="w-full rounded-t-sm bg-gradient-to-t from-rose-600 to-rose-400"
+                          style={{ height: `${rejectedH}%`, boxShadow: "0 0 6px #f43f5e55", minHeight: m.rejected > 0 ? "4px" : "0" }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase">{m.label}</span>
+                    <span className="text-[9px] font-mono text-slate-600">{m.all}</span>
                   </div>
-                ))}
-              </div>
-
-              {/* Area SVG Graph */}
-              <div className="h-44 ml-7 mt-2 relative">
-                <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  {/* Teal Area */}
-                  <polygon
-                    points={makeAreaPoints(trendTeal)}
-                    fill="url(#tealGradient)"
-                    opacity="0.25"
-                  />
-                  <polyline
-                    points={makePoints(trendTeal).join(" ")}
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="2"
-                  />
-                  
-                  {/* Rose Area */}
-                  <polygon
-                    points={makeAreaPoints(trendRose)}
-                    fill="url(#roseGradient)"
-                    opacity="0.2"
-                  />
-                  <polyline
-                    points={makePoints(trendRose).join(" ")}
-                    fill="none"
-                    stroke="#f43f5e"
-                    strokeWidth="2"
-                  />
-
-                  {/* Gradients */}
-                  <defs>
-                    <linearGradient id="tealGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.8"/>
-                      <stop offset="100%" stopColor="#10b981" stopOpacity="0"/>
-                    </linearGradient>
-                    <linearGradient id="roseGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.8"/>
-                      <stop offset="100%" stopColor="#f43f5e" stopOpacity="0"/>
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div>
-
-              {/* X-axis Labels */}
-              <div className="flex justify-between text-[10px] font-bold text-blue-400/60 ml-12 mt-1">
-                {["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"].map(l => <span key={l}>{l}</span>)}
-              </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Middle Graph: Double Line Chart */}
-          <div className="space-y-3">
-            <div>
-              <h3 className="text-sm font-bold text-blue-100">YOLO Seal/Signature Extract Trends</h3>
-              <p className="text-[10px] text-blue-400">Confidence intervals matching neural stamp extraction models over runtime intervals</p>
-            </div>
-            
-            <div className="relative bg-[#0d1527] border border-blue-900/40 p-4 rounded-xl">
-              {/* Y-axis Gridlines */}
-              <div className="absolute inset-y-4 left-4 right-4 flex flex-col justify-between pointer-events-none">
-                {[180, 160, 140, 120, 100, 80, 60, 40, 20].map((val) => (
-                  <div key={val} className="w-full flex items-center gap-2">
-                    <span className="text-[9px] font-semibold text-blue-400/60 w-5 text-right">{val}</span>
-                    <div className="flex-1 border-t border-blue-950/20"></div>
+          {/* Status donut */}
+          <div className="rounded-xl bg-[#0d1527] border border-slate-800 p-5 flex flex-col">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">Request Status</p>
+            <h3 className="text-sm font-bold text-white mb-4">Distribution</h3>
+
+            <div className="flex gap-4 items-center flex-1">
+              <div className="relative w-28 h-28 flex-shrink-0">
+                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                  {donutSlices.length > 0 ? donutSlices.map((s, i) => (
+                    <circle
+                      key={i}
+                      cx="50" cy="50" r={radius}
+                      fill="none"
+                      stroke={s.color}
+                      strokeWidth="16"
+                      strokeDasharray={s.dasharray}
+                      strokeDashoffset={s.dashoffset}
+                      style={{ filter: `drop-shadow(0 0 3px ${s.color}88)` }}
+                    />
+                  )) : (
+                    <circle cx="50" cy="50" r={radius} fill="none" stroke="#1e293b" strokeWidth="16" />
+                  )}
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-black text-white">{total}</span>
+                  <span className="text-[9px] text-slate-400 font-bold">Total</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 flex-1 min-w-0">
+                {donutSlices.map(s => (
+                  <div key={s.label} className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.color, boxShadow: `0 0 6px ${s.color}` }} />
+                    <span className="text-[10px] text-slate-300 flex-1 truncate">{s.label}</span>
+                    <span className="text-[10px] font-mono font-bold text-white">{s.value}</span>
+                    <span className="text-[9px] text-slate-500 font-mono">({s.pct}%)</span>
                   </div>
                 ))}
-              </div>
-
-              {/* Line SVG Graph */}
-              <div className="h-44 ml-7 mt-2 relative">
-                <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  {/* Teal Line */}
-                  <polyline
-                    points={makePoints(trendTeal).join(" ")}
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="2.5"
-                  />
-                  {/* Rose Line */}
-                  <polyline
-                    points={makePoints(trendRose).join(" ")}
-                    fill="none"
-                    stroke="#f43f5e"
-                    strokeWidth="2.5"
-                  />
-                </svg>
-              </div>
-
-              {/* X-axis Labels */}
-              <div className="flex justify-between text-[10px] font-bold text-blue-400/60 ml-12 mt-1">
-                {["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"].map(l => <span key={l}>{l}</span>)}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column - Rings & Rankings */}
-        <div className="lg:col-span-5 space-y-8">
-          
-          {/* Top Rings Container: Four concentric progress circle indicators */}
-          <div className="grid grid-cols-2 gap-4">
-            
-            {/* Ring 1 */}
-            <div className="bg-[#0d1527] border border-blue-900/40 p-4 rounded-xl flex flex-col items-center justify-center text-center">
-              <div className="relative h-24 w-24">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#1e293b" strokeWidth="3.5" />
-                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#10b981" strokeWidth="3.5" 
-                    strokeDasharray={`${ocrPassRate} ${100 - ocrPassRate}`} 
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-black text-white">{ocrPassRate}%</span>
-                  <span className="text-[7px] text-blue-400 font-bold uppercase">OCR Pass</span>
-                </div>
-              </div>
-              <span className="text-[10px] text-blue-300 font-semibold mt-2">OCR Document Scans</span>
-            </div>
+        {/* ── Row 3: Progress Rings + Pipeline Bars ──────────────────────── */}
+        <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
 
-            {/* Ring 2 */}
-            <div className="bg-[#0d1527] border border-blue-900/40 p-4 rounded-xl flex flex-col items-center justify-center text-center">
-              <div className="relative h-24 w-24">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#1e293b" strokeWidth="3.5" />
-                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#f43f5e" strokeWidth="3.5" 
-                    strokeDasharray={`${yoloPassRate} ${100 - yoloPassRate}`} 
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-black text-white">{yoloPassRate}%</span>
-                  <span className="text-[7px] text-blue-400 font-bold uppercase">YOLO Seal</span>
-                </div>
-              </div>
-              <span className="text-[10px] text-blue-300 font-semibold mt-2">Stamp Detection</span>
+          {/* 4 rings */}
+          <div className="rounded-xl bg-[#0d1527] border border-slate-800 p-5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">AI Verification Rates</p>
+            <h3 className="text-sm font-bold text-white mb-4">System Performance</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <Ring pct={ocrRate}      color="#22d3ee" sublabel="OCR"      label="OCR Document Scans" />
+              <Ring pct={yoloRate}     color="#a78bfa" sublabel="YOLO"     label="Stamp Detection" />
+              <Ring pct={issuanceRate} color="#34d399" sublabel="Issued"   label="Attestation Rate" />
+              <Ring pct={paymentRate}  color="#fbbf24" sublabel="Paid"     label="Fee Cleared Rate" />
             </div>
-
-            {/* Ring 3 */}
-            <div className="bg-[#0d1527] border border-blue-900/40 p-4 rounded-xl flex flex-col items-center justify-center text-center">
-              <div className="relative h-24 w-24">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#1e293b" strokeWidth="3.5" />
-                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#10b981" strokeWidth="3.5" 
-                    strokeDasharray={`${issuanceRate} ${100 - issuanceRate}`} 
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-black text-white">{issuanceRate}%</span>
-                  <span className="text-[7px] text-blue-400 font-bold uppercase">Attested</span>
-                </div>
-              </div>
-              <span className="text-[10px] text-blue-300 font-semibold mt-2">Completion Attestation</span>
-            </div>
-
-            {/* Ring 4 */}
-            <div className="bg-[#0d1527] border border-blue-900/40 p-4 rounded-xl flex flex-col items-center justify-center text-center">
-              <div className="relative h-24 w-24">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#1e293b" strokeWidth="3.5" />
-                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#f43f5e" strokeWidth="3.5" 
-                    strokeDasharray={`${paymentRate} ${100 - paymentRate}`} 
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-black text-white">{paymentRate}%</span>
-                  <span className="text-[7px] text-blue-400 font-bold uppercase">Paid</span>
-                </div>
-              </div>
-              <span className="text-[10px] text-blue-300 font-semibold mt-2">Attestation Fee Clear</span>
-            </div>
-
           </div>
 
-          {/* Horizontal segmented bars */}
-          <div className="bg-[#0d1527] border border-blue-900/40 p-5 rounded-xl space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-blue-200">System Pipeline Status</h4>
-            
-            {[
-              { label: "Approved Requests", count: issued, total: total, color: "bg-emerald-500" },
-              { label: "Pending Payments", count: pendingPayment, total: total, color: "bg-amber-500" },
-              { label: "Pending Evaluations", count: pendingVerify, total: total, color: "bg-cyan-500" },
-              { label: "Rejected Requests", count: rejected, total: total, color: "bg-rose-500" },
-            ].map((item) => {
-              const percentage = Math.min(100, Math.round((item.count / total) * 100));
-              return (
-                <div key={item.label} className="space-y-1 text-xs">
-                  <div className="flex justify-between font-bold">
-                    <span className="text-blue-300">{item.label}</span>
-                    <span className="font-mono text-white">{item.count} / {requests.length}</span>
-                  </div>
-                  {/* Segmented bar visualizer */}
-                  <div className="h-2.5 w-full bg-blue-950/80 rounded overflow-hidden flex gap-0.5">
-                    {Array.from({ length: 20 }).map((_, i) => (
-                      <div 
-                        key={i} 
-                        className={`h-full flex-1 transition-all ${
-                          i < Math.round(percentage / 5) ? item.color : "bg-blue-900/20"
-                        }`}
+          {/* Pipeline horizontal bars */}
+          <div className="rounded-xl bg-[#0d1527] border border-slate-800 p-5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Pipeline Status</p>
+            <h3 className="text-sm font-bold text-white mb-5">Live Queue Breakdown</h3>
+            <div className="space-y-4">
+              {[
+                { label: "Issued / Attested",    count: issued,         color: "#22d3ee", glow: "#22d3ee55" },
+                { label: "Pending Verification", count: pendingVerify,  color: "#fbbf24", glow: "#fbbf2455" },
+                { label: "Pending Payment",      count: pendingPayment, color: "#a78bfa", glow: "#a78bfa55" },
+                { label: "Paid (Awaiting Mint)", count: paid,           color: "#34d399", glow: "#34d39955" },
+                { label: "Rejected",             count: rejected,       color: "#f43f5e", glow: "#f43f5e55" },
+              ].map(item => {
+                const pct = total === 0 ? 0 : Math.round((item.count / total) * 100);
+                return (
+                  <div key={item.label}>
+                    <div className="flex justify-between text-[10px] font-bold mb-1.5">
+                      <span className="text-slate-300">{item.label}</span>
+                      <span className="font-mono text-white">{item.count} <span className="text-slate-500">/ {total}</span></span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${pct}%`, background: item.color, boxShadow: `0 0 8px ${item.glow}` }}
                       />
-                    ))}
+                    </div>
+                    <div className="text-right text-[9px] text-slate-600 font-mono mt-0.5">{pct}%</div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-        </div>
-      </div>
-
-      {/* Bottom Row: Calendar & Alternating Bar Chart */}
-      <div className="grid gap-8 md:grid-cols-2">
-        {/* Calendar View */}
-        <div className="bg-[#0d1527] border border-blue-900/40 p-5 rounded-xl">
-          <div className="flex justify-between items-center mb-4 border-b border-blue-900/30 pb-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-blue-200">
-              {monthNames[currentMonth]} {currentYear}
-            </h4>
-            <span className="text-[10px] font-bold text-blue-400">Attestation Logs</span>
-          </div>
-
-          <div className="grid grid-cols-7 gap-y-2.5 text-center text-xs">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-              <span key={d} className="font-bold text-blue-400 text-[10px] uppercase">{d}</span>
-            ))}
-
-            {calendarDays.map((day, idx) => {
-              const isToday = day === new Date().getDate();
-              return (
-                <div key={idx} className="flex justify-center items-center h-7">
-                  {day ? (
-                    <span className={`w-6 h-6 flex items-center justify-center rounded-full font-bold ${
-                      isToday ? "bg-blue-800 text-white border border-blue-500" : "text-blue-200 hover:bg-blue-900"
-                    }`}>
-                      {day}
-                    </span>
-                  ) : ""}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Alternating Vertical Bar Chart */}
-        <div className="bg-[#0d1527] border border-blue-900/40 p-5 rounded-xl space-y-4">
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-blue-200">Queue Processing Load</h4>
-            <p className="text-[9px] text-blue-400">Teal = automated pipeline success, Rose = security overrides</p>
-          </div>
-
-          <div className="flex items-end justify-between h-36 pt-4 px-2">
-            {[
-              { val: 45, color: "#10b981" },
-              { val: 75, color: "#f43f5e" },
-              { val: 30, color: "#10b981" },
-              { val: 60, color: "#10b981" },
-              { val: 85, color: "#10b981" },
-              { val: 55, color: "#f43f5e" },
-              { val: 70, color: "#10b981" },
-              { val: 25, color: "#f43f5e" },
-              { val: 80, color: "#10b981" },
-              { val: 90, color: "#f43f5e" },
-            ].map((item, idx) => (
-              <div key={idx} className="flex flex-col items-center flex-1 h-full justify-end group">
-                <div className="w-4 bg-blue-950/80 rounded-t h-full relative overflow-hidden flex items-end">
-                  <div 
-                    className="w-full rounded-t transition-all duration-500" 
-                    style={{ 
-                      height: `${item.val}%`, 
-                      background: item.color,
-                      boxShadow: `0 0 8px ${item.color}80`
-                    }} 
-                  />
-                </div>
-                <span className="text-[9px] font-bold text-blue-400/60 mt-1.5">
-                  {String.fromCharCode(65 + idx)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

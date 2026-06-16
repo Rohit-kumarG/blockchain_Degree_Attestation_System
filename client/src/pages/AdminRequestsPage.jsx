@@ -23,7 +23,6 @@ import {
   Edit
 } from "lucide-react";
 import { printDegreeCertificate } from "../services/printHelper.js";
-import { AdminAnalyticsDashboard } from "../components/charts/AdminAnalyticsDashboard.jsx";
 
 export function AdminRequestsPage({ token }) {
   const [requests, setRequests] = useState([]);
@@ -280,9 +279,6 @@ export function AdminRequestsPage({ token }) {
         title="Manage Attestation Applications"
         description="Verify document authenticity using OCR validations, cross-examine side-by-side files, and manage approvals."
       />
-
-      {/* Visual Analytics Graphs */}
-      <AdminAnalyticsDashboard requests={requests} />
 
       {/* Top Filter Bar & CSV Export Button */}
       <div className="bg-white border border-stone-200 shadow-sm rounded-xl p-5 flex flex-wrap gap-4 items-end justify-between">

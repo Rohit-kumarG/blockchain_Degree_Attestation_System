@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { PageHeader } from "../components/PageHeader.jsx";
 import { StatusMessage } from "../components/StatusMessage.jsx";
 import { apiRequest, API_BASE_URL } from "../services/api.js";
+import { extractNicExpiryFromImage } from "../services/nicOcr.js";
 import { payAttestationFeeOnChain } from "../services/web3.js";
 import { 
   UploadCloud, 
@@ -147,6 +148,35 @@ export function RequestAttestationPage({ token }) {
     setQualifications(updated);
   }
 
+  function preprocessImageForOcr(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          
+          // Upscale image to ensure text is large enough for Tesseract
+          const targetWidth = 1500;
+          const scale = targetWidth / img.width;
+          canvas.width = targetWidth;
+          canvas.height = img.height * scale;
+          
+          // Apply filters to increase contrast and binarize/grayscale
+          ctx.filter = "grayscale(100%) contrast(200%) brightness(105%)";
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          canvas.toBlob((blob) => {
+            resolve(blob || file);
+          }, "image/jpeg", 0.95);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // Handle file changes and trigger real-time OCR auto-fill
   async function handleFileChange(field, e) {
     const file = e.target.files[0];
@@ -171,6 +201,18 @@ export function RequestAttestationPage({ token }) {
     setError("");
 
     try {
+      // For NIC: use client-side Tesseract.js directly (more accurate than server-side for CNIC images)
+      if (field === "nicFront" || field === "nicBack") {
+        const expiryDate = await extractNicExpiryFromImage(file);
+        console.log("[NIC OCR] Expiry date extracted:", expiryDate);
+        if (expiryDate) {
+          setForm(prev => ({ ...prev, nicExpiryDate: expiryDate }));
+          setOcrPassed(prev => ({ ...prev, [field]: true }));
+        }
+        return;
+      }
+
+      // For other documents: use server-side OCR with original file (preprocessing hurts Tesseract server-side)
       const formData = new FormData();
       formData.append("file", file);
       formData.append("type", type);
@@ -198,20 +240,6 @@ export function RequestAttestationPage({ token }) {
         } else if (field === "transcript") {
           setForm(prev => ({ ...prev, cgpa: data.value }));
           setOcrPassed(prev => ({ ...prev, transcript: true }));
-        } else if (field === "nicFront" || field === "nicBack") {
-          if (data.value && typeof data.value === "object") {
-            setForm(prev => ({
-              ...prev,
-              nicExpiryDate: data.value.nicExpiryDate || prev.nicExpiryDate,
-              dob: data.value.dob || prev.dob,
-              fatherName: data.value.fatherName || prev.fatherName,
-              gender: data.value.gender || prev.gender,
-              address: data.value.address || prev.address
-            }));
-          } else {
-            setForm(prev => ({ ...prev, nicExpiryDate: data.value || "" }));
-          }
-          setOcrPassed(prev => ({ ...prev, [field]: true }));
         }
       }
     } catch (err) {
