@@ -33,7 +33,7 @@ const emptyForm = {
   degreeTitle: "",
   department: "",
   graduationYear: new Date().getFullYear(),
-  studentWallet: "",
+  studentWallet: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
   rollNumber: "",
   metricPercentage: "",
   interPercentage: "",
@@ -60,10 +60,7 @@ export function RequestAttestationPage({ token }) {
   const [busy, setBusy] = useState(false);
   
   // Qualifications array
-  const [qualifications, setQualifications] = useState([
-    { level: "Matric", degreeTitle: "", boardOrUniversity: "", campus: "N/A", session: "", rollNumber: "", duration: "2 Years" },
-    { level: "Intermediate", degreeTitle: "", boardOrUniversity: "", campus: "N/A", session: "", rollNumber: "", duration: "2 Years" }
-  ]);
+  const [qualifications, setQualifications] = useState([]);
 
   // Multi-file state
   const [files, setFiles] = useState({
@@ -124,6 +121,19 @@ export function RequestAttestationPage({ token }) {
 
   useEffect(() => {
     loadData();
+    async function autoDetectWallet() {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: "eth_accounts" });
+          if (accounts && accounts[0]) {
+            setForm(prev => ({ ...prev, studentWallet: accounts[0] }));
+          }
+        } catch (err) {
+          console.error("Failed to auto detect MetaMask account:", err);
+        }
+      }
+    }
+    autoDetectWallet();
   }, [token]);
 
   // Dynamic qualification table actions
@@ -227,7 +237,7 @@ export function RequestAttestationPage({ token }) {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "Failed to scan document via OCR");
+        throw new Error(data.error || data.message || "Failed to scan document via OCR");
       }
 
       if (data.value !== null && data.value !== undefined) {
@@ -240,6 +250,16 @@ export function RequestAttestationPage({ token }) {
         } else if (field === "transcript") {
           setForm(prev => ({ ...prev, cgpa: data.value }));
           setOcrPassed(prev => ({ ...prev, transcript: true }));
+        }
+      } else {
+        // Even if OCR couldn't extract — show warning but don't block (user can enter manually)
+        console.warn(`[OCR] Could not auto-extract value from ${field}. User must enter manually.`);
+        if (field === "metricMarksheet") {
+          setError("⚠️ Could not auto-read Matric % from this image. Please enter manually below.");
+        } else if (field === "interMarksheet") {
+          setError("⚠️ Could not auto-read Intermediate % from this image. Please enter manually below.");
+        } else if (field === "transcript") {
+          setError("⚠️ Could not auto-read CGPA from this transcript. Please enter manually below.");
         }
       }
     } catch (err) {
@@ -369,7 +389,7 @@ export function RequestAttestationPage({ token }) {
       clearInterval(progressInterval);
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to create attestation request");
+        throw new Error(data.error || data.message || "Failed to create attestation request");
       }
 
       setScanProgress(100);
@@ -540,133 +560,11 @@ export function RequestAttestationPage({ token }) {
             </div>
           </div>
 
-          {/* Part 2: Dynamic Qualifications History */}
-          <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-6 space-y-4">
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                <GraduationCap size={18} className="text-blue-800" />
-                2. Educational History
-              </h3>
-              <button
-                type="button"
-                onClick={addQualification}
-                className="flex items-center gap-1 bg-blue-800 hover:bg-blue-900 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition"
-              >
-                <Plus size={14} /> Add Qualification
-              </button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-stone-200 text-sm text-left">
-                <thead className="bg-stone-50 text-stone-700 font-bold uppercase tracking-wide text-xs">
-                  <tr>
-                    <th className="p-3">Level</th>
-                    <th className="p-3">Degree Title</th>
-                    <th className="p-3">Board / University</th>
-                    <th className="p-3">Campus</th>
-                    <th className="p-3">Session</th>
-                    <th className="p-3">Roll Number</th>
-                    <th className="p-3">Duration</th>
-                    <th className="p-3 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-200 bg-white">
-                  {qualifications.map((qual, idx) => (
-                    <tr key={idx} className="hover:bg-stone-50/50">
-                      <td className="p-2">
-                        <select
-                          className="border border-stone-300 bg-stone-50 p-2 rounded-md text-xs w-32 focus:ring-1 focus:ring-blue-800"
-                          value={qual.level}
-                          onChange={(e) => handleQualChange(idx, "level", e.target.value)}
-                        >
-                          <option value="Matric">Matric</option>
-                          <option value="Intermediate">Intermediate</option>
-                          <option value="Bachelor">Bachelor</option>
-                          <option value="Master">Master</option>
-                          <option value="PhD">PhD</option>
-                        </select>
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          placeholder="e.g. BSCS"
-                          className="border border-stone-300 p-2 rounded-md text-xs w-32"
-                          value={qual.degreeTitle}
-                          onChange={(e) => handleQualChange(idx, "degreeTitle", e.target.value)}
-                          required
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          placeholder="University/Board name"
-                          className="border border-stone-300 p-2 rounded-md text-xs w-48"
-                          value={qual.boardOrUniversity}
-                          onChange={(e) => handleQualChange(idx, "boardOrUniversity", e.target.value)}
-                          required
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          placeholder="Main Campus"
-                          className="border border-stone-300 p-2 rounded-md text-xs w-28"
-                          value={qual.campus}
-                          onChange={(e) => handleQualChange(idx, "campus", e.target.value)}
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          placeholder="2020-2024"
-                          className="border border-stone-300 p-2 rounded-md text-xs w-24"
-                          value={qual.session}
-                          onChange={(e) => handleQualChange(idx, "session", e.target.value)}
-                          required
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          placeholder="Roll No"
-                          className="border border-stone-300 p-2 rounded-md text-xs w-28"
-                          value={qual.rollNumber}
-                          onChange={(e) => handleQualChange(idx, "rollNumber", e.target.value)}
-                          required
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          placeholder="Duration"
-                          className="border border-stone-300 p-2 rounded-md text-xs w-24"
-                          value={qual.duration}
-                          onChange={(e) => handleQualChange(idx, "duration", e.target.value)}
-                        />
-                      </td>
-                      <td className="p-2 text-center">
-                        {qualifications.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeQualification(idx)}
-                            className="text-rose-600 hover:text-rose-800 p-1 transition"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Part 3: Program & Institution Details */}
+          {/* Part 2: Program & Institution Details */}
           <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-6 space-y-6">
             <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-3">
               <Layers size={18} className="text-blue-800" />
-              3. Attestation Degree Details
+              2. Attestation Degree Details
             </h3>
             
             <div className="grid gap-6 md:grid-cols-2">
@@ -721,18 +619,6 @@ export function RequestAttestationPage({ token }) {
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-bold text-stone-700 uppercase tracking-wide">Student Wallet Address</span>
-                <input
-                  className="min-h-11 w-full border border-stone-300 bg-stone-50 px-3 rounded-lg focus:ring-2 focus:ring-blue-600 transition text-sm font-mono text-stone-700"
-                  type="text"
-                  placeholder="0x..."
-                  value={form.studentWallet}
-                  onChange={(e) => setForm({ ...form, studentWallet: e.target.value })}
-                  required
-                />
-              </label>
-
-              <label className="block">
                 <span className="mb-1.5 block text-xs font-bold text-stone-700 uppercase tracking-wide">Roll Number / Student ID</span>
                 <input
                   className="min-h-11 w-full border border-stone-300 bg-stone-50 px-3 rounded-lg focus:ring-2 focus:ring-blue-600 transition text-sm"
@@ -746,11 +632,11 @@ export function RequestAttestationPage({ token }) {
             </div>
           </div>
 
-          {/* Part 4: Required Academic & Identity Files */}
+          {/* Part 3: Required Academic & Identity Files */}
           <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-6 space-y-6">
             <h3 className="text-base font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-3">
               <FileText size={18} className="text-blue-800" />
-              4. Upload Supporting Documents
+              3. Upload Supporting Documents
             </h3>
 
             <div className="grid gap-6 md:grid-cols-2">
@@ -779,7 +665,7 @@ export function RequestAttestationPage({ token }) {
                     <div className="border border-dashed border-stone-300 rounded-lg p-6 flex flex-col items-center justify-center bg-white text-center hover:bg-stone-50 transition cursor-pointer relative h-[100px]">
                       <UploadCloud size={24} className="text-stone-400 mb-1" />
                       <p className="text-[11px] font-bold text-stone-700">Upload Marksheet</p>
-                      <input type="file" onChange={(e) => handleFileChange("metricMarksheet", e)} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
+                      <input type="file" onChange={(e) => handleFileChange("metricMarksheet", e)} accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" />
                     </div>
                   )}
                 </div>
@@ -815,7 +701,7 @@ export function RequestAttestationPage({ token }) {
                     <div className="border border-dashed border-stone-300 rounded-lg p-6 flex flex-col items-center justify-center bg-white text-center hover:bg-stone-50 transition cursor-pointer relative h-[100px]">
                       <UploadCloud size={24} className="text-stone-400 mb-1" />
                       <p className="text-[11px] font-bold text-stone-700">Upload Marksheet</p>
-                      <input type="file" onChange={(e) => handleFileChange("interMarksheet", e)} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
+                      <input type="file" onChange={(e) => handleFileChange("interMarksheet", e)} accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" />
                     </div>
                   )}
                 </div>
@@ -851,7 +737,7 @@ export function RequestAttestationPage({ token }) {
                     <div className="border border-dashed border-stone-300 rounded-lg p-6 flex flex-col items-center justify-center bg-white text-center hover:bg-stone-50 transition cursor-pointer relative h-[100px]">
                       <UploadCloud size={24} className="text-stone-400 mb-1" />
                       <p className="text-[11px] font-bold text-stone-700">Upload Transcript</p>
-                      <input type="file" onChange={(e) => handleFileChange("transcript", e)} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
+                      <input type="file" onChange={(e) => handleFileChange("transcript", e)} accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" />
                     </div>
                   )}
                 </div>
@@ -889,7 +775,7 @@ export function RequestAttestationPage({ token }) {
                       <div className="border border-dashed border-stone-300 rounded-lg p-2 flex flex-col items-center justify-center bg-white text-center hover:bg-stone-50 transition cursor-pointer relative h-[80px]">
                         <UploadCloud size={16} className="text-stone-400" />
                         <span className="text-[9px] font-bold text-stone-600 font-medium">CNIC Front</span>
-                        <input type="file" onChange={(e) => handleFileChange("nicFront", e)} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
+                        <input type="file" onChange={(e) => handleFileChange("nicFront", e)} accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" />
                       </div>
                     )}
 
@@ -902,7 +788,7 @@ export function RequestAttestationPage({ token }) {
                       <div className="border border-dashed border-stone-300 rounded-lg p-2 flex flex-col items-center justify-center bg-white text-center hover:bg-stone-50 transition cursor-pointer relative h-[80px]">
                         <UploadCloud size={16} className="text-stone-400" />
                         <span className="text-[9px] font-bold text-stone-600 font-medium">CNIC Back</span>
-                        <input type="file" onChange={(e) => handleFileChange("nicBack", e)} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
+                        <input type="file" onChange={(e) => handleFileChange("nicBack", e)} accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" />
                       </div>
                     )}
                   </div>
@@ -911,11 +797,11 @@ export function RequestAttestationPage({ token }) {
             </div>
           </div>
 
-          {/* Part 5: Verify Extracted Metrics */}
+          {/* Part 4: Verify Extracted Metrics */}
           <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-6 space-y-6">
             <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-3">
               <ShieldCheck size={18} className="text-blue-800" />
-              5. Verify Extracted Metrics (Editable)
+              4. Verify Extracted Metrics (Editable)
             </h3>
             <p className="text-sm text-stone-500">
               These values are automatically filled when you upload your documents. If a document is pending or incorrect, feel free to manually edit/input the values.
@@ -990,11 +876,11 @@ export function RequestAttestationPage({ token }) {
             </div>
           </div>
 
-          {/* Part 6: Attestation Details & Payment Method */}
+          {/* Part 5: Attestation Details & Payment Method */}
           <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-6 space-y-6">
             <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-3">
               <ShieldCheck size={18} className="text-blue-800" />
-              6. Attestation Details & Payment
+              5. Attestation Details & Payment
             </h3>
             
             <div className="grid gap-6 md:grid-cols-2">
@@ -1080,7 +966,7 @@ export function RequestAttestationPage({ token }) {
                       ) : (
                         <div className="border border-dashed border-stone-300 rounded p-2 text-center bg-white cursor-pointer relative">
                           <span className="text-[10px] font-bold text-stone-600">Upload Receipt</span>
-                          <input type="file" onChange={(e) => handleFileChange("paymentSlip", e)} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
+                          <input type="file" onChange={(e) => handleFileChange("paymentSlip", e)} accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf" className="absolute inset-0 opacity-0 cursor-pointer" />
                         </div>
                       )}
                     </div>
@@ -1184,27 +1070,61 @@ export function RequestAttestationPage({ token }) {
         </div>
       )}
 
-      {/* STEP 3: Completed State */}
+      {/* STEP 3: Submitted — Waiting for Admin Approval */}
       {step === 3 && (
-        <div className="max-w-md mx-auto py-10 text-center bg-white border border-stone-200 shadow-xl rounded-2xl p-6 space-y-6">
-          <div className="h-20 w-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600 shadow-inner">
-            <CheckCircle size={44} />
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-2xl font-bold text-stone-800">Application Submitted!</h4>
-            <p className="text-sm text-stone-500 font-medium">
-              Your academic files and payment are successfully registered. The university attestation department will review your documents.
-            </p>
+        <div className="max-w-lg mx-auto py-10 text-center bg-white border border-stone-200 shadow-xl rounded-2xl p-8 space-y-6">
+          {/* Animated waiting icon */}
+          <div className="h-24 w-24 bg-amber-50 border-4 border-amber-200 rounded-full flex items-center justify-center mx-auto shadow-inner">
+            <svg className="animate-spin" style={{ animationDuration: '3s' }} viewBox="0 0 24 24" fill="none" width="44" height="44">
+              <circle cx="12" cy="12" r="10" stroke="#d97706" strokeWidth="2" strokeDasharray="40 20" />
+              <path d="M12 7v5l3 3" stroke="#d97706" strokeWidth="2" strokeLinecap="round" />
+            </svg>
           </div>
 
-          <div className="pt-4">
-            <button
-              onClick={resetFlow}
-              className="px-6 h-12 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl transition shadow-sm"
-            >
-              Submit Another Request
-            </button>
+          <div className="space-y-2">
+            <h4 className="text-2xl font-bold text-stone-800">Application Submitted!</h4>
+            <div className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-4 py-1.5 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block" />
+              Waiting for Admin Approval
+            </div>
           </div>
+
+          <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 text-left space-y-3 text-sm">
+            <p className="text-stone-600 font-medium leading-relaxed">
+              Your documents have been submitted to the <strong>Iqra University Attestation Office</strong> for review.
+              The admin will verify all your uploaded documents and approve your request.
+            </p>
+            <div className="space-y-2 pt-2 border-t border-stone-100">
+              <div className="flex items-center gap-2 text-xs text-stone-500">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px]">✓</span>
+                Documents uploaded and scanned
+              </div>
+              <div className="flex items-center gap-2 text-xs text-stone-500">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px]">✓</span>
+                Payment registered
+              </div>
+              <div className="flex items-center gap-2 text-xs text-amber-700 font-semibold">
+                <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-[10px] animate-pulse">⏳</span>
+                Waiting for Admin to Review & Approve
+              </div>
+              <div className="flex items-center gap-2 text-xs text-stone-400">
+                <span className="w-5 h-5 rounded-full bg-stone-100 text-stone-400 flex items-center justify-center font-bold text-[10px]">○</span>
+                Degree Certificate will be available once approved
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-stone-400 font-medium">
+            You can track your application status in the <strong>Attestation History</strong> section below.
+            Once approved, a <strong>Print Degree</strong> button will appear.
+          </p>
+
+          <button
+            onClick={resetFlow}
+            className="px-6 h-12 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl transition shadow-sm"
+          >
+            Submit Another Request
+          </button>
         </div>
       )}
 
@@ -1241,7 +1161,20 @@ export function RequestAttestationPage({ token }) {
                   <div>Consumer No: <span className="font-semibold">{req.consumerNumber || "N/A"}</span></div>
                 </div>
 
-                {req.rejectionReason && (
+                {req.status === "ISSUED" && (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-center text-[10px] font-bold text-emerald-700">
+                    ✅ Degree Approved & Ready to Print!
+                  </div>
+                )}
+
+                {(req.status === "PENDING_VERIFICATION" || req.status === "PAID" || req.status === "PENDING_PAYMENT") && (
+                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-center text-[10px] font-bold text-amber-700 flex items-center justify-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Waiting for Admin Approval
+                  </div>
+                )}
+
+                {req.status === "REJECTED" && req.rejectionReason && (
                   <div className="p-2 border border-rose-100 rounded-lg bg-rose-50/50 text-[10px] text-rose-800">
                     <span className="font-bold">Reason:</span> {req.rejectionReason}
                   </div>

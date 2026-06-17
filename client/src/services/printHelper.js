@@ -1,4 +1,7 @@
 export function printDegreeCertificate(degree) {
+  // Support both DegreeRequest objects (student?.name) and Degree objects (studentName)
+  const resolvedName = degree.studentName || degree.student?.name || "Student";
+  degree = { ...degree, studentName: resolvedName };
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
     alert("Please allow popups to print the certificate.");

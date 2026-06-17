@@ -180,18 +180,20 @@ export const createDegreeRequest = asyncHandler(async (req, res) => {
   const ocrStatus = ocrReport.passed ? "PASSED" : "FAILED";
 
   // Determine request status based on YOLO + OCR
+  // NOTE: Don't auto-reject on OCR/YOLO failure — admin reviews all requests
+  // Auto-approve only if BOTH YOLO and OCR pass AND payment is complete
   const approved = isAutoVerified && ocrReport.passed;
-  let status = approved ? "PENDING_PAYMENT" : "REJECTED";
+  let status = "PENDING_VERIFICATION"; // Always start with pending — admin will review
   let paymentStatus = "PENDING";
   let finalBitcoinTxHash = "";
   
   if (paymentMethod === "BITCOIN" && bitcoinTxHash) {
     paymentStatus = "PAID";
-    status = approved ? "PAID" : "REJECTED";
+    status = approved ? "PAID" : "PENDING_VERIFICATION";
     finalBitcoinTxHash = bitcoinTxHash.toLowerCase();
   } else if (paymentMethod === "ONELINK" && paymentSlipUrl) {
     paymentStatus = "PAID";
-    status = approved ? "PAID" : "REJECTED";
+    status = approved ? "PAID" : "PENDING_VERIFICATION";
   }
 
   // Pre-generate issueDate and IPFS CID to calculate the deterministic hash

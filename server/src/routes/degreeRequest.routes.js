@@ -35,18 +35,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-
-    if (extname && mimetype) {
-      return cb(null, true);
-    } else {
-      cb(new Error("Only .png, .jpg and .jpeg format allowed!"));
-    }
-  },
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit - accept any file type
 });
 
 export const degreeRequestRouter = Router();

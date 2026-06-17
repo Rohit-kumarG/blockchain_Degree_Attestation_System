@@ -277,7 +277,7 @@ export function AdminRequestsPage({ token }) {
       <PageHeader
         eyebrow="Iqra University Attestation Administration"
         title="Manage Attestation Applications"
-        description="Verify document authenticity using OCR validations, cross-examine side-by-side files, and manage approvals."
+        description="Review all student documents, verify authenticity using OCR & YOLO scans, then approve or reject each application."
       />
 
       {/* Top Filter Bar & CSV Export Button */}
@@ -400,7 +400,7 @@ export function AdminRequestsPage({ token }) {
         {/* Selected Request Detail Panel */}
         <section className="bg-white border border-stone-200 shadow-sm rounded-xl p-6 self-start space-y-6">
           <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-            <h3 className="text-base font-bold text-stone-800">Iqra Document Evaluation</h3>
+            <h3 className="text-base font-bold text-stone-800">Application Detail &amp; Evaluation</h3>
             {selectedRequest && !isEditing && (
               <button
                 type="button"
@@ -415,6 +415,29 @@ export function AdminRequestsPage({ token }) {
 
           {selectedRequest ? (
             <div className="space-y-6">
+              {/* ── Status Guidance Banner ── */}
+              {!isEditing && (
+                <div className={`rounded-xl border p-3 flex items-center gap-3 text-xs font-bold ${
+                  selectedRequest.status === "ISSUED" 
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                    : selectedRequest.status === "REJECTED"
+                    ? "bg-rose-50 border-rose-200 text-rose-800"
+                    : "bg-amber-50 border-amber-200 text-amber-800"
+                }`}>
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                    selectedRequest.status === "ISSUED" ? "bg-emerald-500"
+                    : selectedRequest.status === "REJECTED" ? "bg-rose-500"
+                    : "bg-amber-500 animate-pulse"
+                  }`} />
+                  <div>
+                    {selectedRequest.status === "ISSUED" && "✅ Degree has been approved and issued. Print button is available below."}
+                    {selectedRequest.status === "REJECTED" && `❌ Request was rejected. Reason: ${selectedRequest.rejectionReason || "N/A"}`}
+                    {selectedRequest.status === "PENDING_VERIFICATION" && "⏳ Waiting for Admin Review — check documents below then Approve or Reject."}
+                    {selectedRequest.status === "PAID" && "💳 Payment received. Documents verified. Ready to Approve & Issue Degree."}
+                    {selectedRequest.status === "PENDING_PAYMENT" && "🔔 Documents verified. Awaiting student payment confirmation."}
+                  </div>
+                </div>
+              )}
               {isEditing ? (
                 <div className="space-y-4">
                   <h4 className="font-bold text-xs text-stone-700 uppercase tracking-wider">Edit Request Metadata</h4>
@@ -637,6 +660,42 @@ export function AdminRequestsPage({ token }) {
                 </div>
               ) : (
                 <>
+                  {/* ── All Uploaded Documents Gallery ── */}
+                  <div className="space-y-2">
+                    <h4 className="font-bold text-xs text-stone-700 uppercase tracking-wider flex items-center gap-1">
+                      <Image size={14} /> All Uploaded Documents
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: "Matric Marksheet", url: selectedRequest.metricMarksheetUrl },
+                        { label: "Inter Marksheet", url: selectedRequest.interMarksheetUrl },
+                        { label: "Transcript", url: selectedRequest.transcriptUrl },
+                        { label: "Degree Certificate", url: selectedRequest.documentUrl },
+                        { label: "NIC Front", url: selectedRequest.nicFrontUrl },
+                        { label: "NIC Back", url: selectedRequest.nicBackUrl },
+                        { label: "Payment Slip", url: selectedRequest.paymentSlipUrl },
+                      ].filter(d => d.url).map((doc) => (
+                        <div key={doc.label} className="border border-stone-200 rounded-lg overflow-hidden bg-stone-900 relative">
+                          <img
+                            src={getFullUrl(doc.url)}
+                            alt={doc.label}
+                            className="w-full h-24 object-contain"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-stone-950/75 text-white text-[8px] font-bold px-1.5 py-0.5 text-center">
+                            {doc.label}
+                          </div>
+                          <a
+                            href={getFullUrl(doc.url)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute inset-0"
+                            title={`View ${doc.label}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Document Comparer View */}
                   <div className="space-y-2">
                     <h4 className="font-bold text-xs text-stone-700 uppercase tracking-wider flex items-center gap-1">
